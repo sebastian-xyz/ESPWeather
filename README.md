@@ -81,4 +81,7 @@ void loop() {
 | Cloudiness | `%` |
 | Relative humidity | `%` |
 
+## Class diagram
+![class_diagram](https://github.com/sebastian-xyz/ESPWeather/assets/52786998/8298222a-b2a6-491d-ab80-f1c5efd1709f)
+
 

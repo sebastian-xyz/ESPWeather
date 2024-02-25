@@ -1,5 +1,6 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <time.h>
 #include "weather.hpp"
 #include "math.h"
 #include <WiFiClientSecure.h>
@@ -52,9 +53,7 @@ Weather::Weather(double latitude, double longitude)
   this->wind_speeds = new WeatherData(this->num_hours);
   this->wind_direction = new WeatherData(this->num_hours);
   this->air_pressure = new WeatherData(this->num_hours);
-#ifdef COMPLETE_DATA
   this->cloudiness = new WeatherData(this->num_hours);
-#endif
   this->relative_humidity = new WeatherData(this->num_hours);
   this->last_modified = "";
   this->utc_offset = 0;
@@ -65,14 +64,13 @@ Weather::Weather(double latitude, double longitude, uint16_t altitude)
   this->latitude = latitude;
   this->altitude = altitude;
   this->local_time = new tm;
+  this->expired_time = new tm;
   this->temperature = new WeatherData(this->num_hours);
   this->precipitation = new WeatherData(this->num_hours);
   this->wind_speeds = new WeatherData(this->num_hours);
   this->wind_direction = new WeatherData(this->num_hours);
   this->air_pressure = new WeatherData(this->num_hours);
-#ifdef COMPLETE_WEATHER_DATA
   this->cloudiness = new WeatherData(this->num_hours);
-#endif
   this->relative_humidity = new WeatherData(this->num_hours);
   this->last_modified = "";
   this->utc_offset = 0;
@@ -106,6 +104,7 @@ void Weather::update_data(void)
   WiFiClientSecure *client = new WiFiClientSecure;
   client->setCACert(root_cert);
   HTTPClient https;
+  https.useHTTP10(true);
   char *buffer = new char[512];
   sprintf(buffer, "?lat=%.2f&lon=%.2f&altitude=%d", this->latitude, this->longitude, this->altitude);
   String url = (String)this->url + (String)buffer;
@@ -118,6 +117,21 @@ void Weather::update_data(void)
   const char *headerKeys[] = {"last-modified", "expires"};
   const size_t headerKeysCount = sizeof(headerKeys) / sizeof(headerKeys[0]);
   https.collectHeaders(headerKeys, headerKeysCount);
+
+  JsonDocument filter;
+
+  for (uint8_t i = 0; i < this->num_hours + 1; ++i)
+  {
+    filter["properties"]["timeseries"][i] = true;
+    filter["properties"]["timeseries"][i]["data"]["instant"]["air_temperature"] = true;
+    filter["properties"]["timeseries"][i]["data"]["instant"]["precipitation_amount"] = true;
+    filter["properties"]["timeseries"][i]["data"]["instant"]["wind_speed"] = true;
+    filter["properties"]["timeseries"][i]["data"]["instant"]["wind_from_direction"] = true;
+    filter["properties"]["timeseries"][i]["data"]["instant"]["air_pressure_at_sea_level"] = true;
+    filter["properties"]["timeseries"][i]["data"]["instant"]["cloud_area_fraction"] = true;
+    filter["properties"]["timeseries"][i]["data"]["instant"]["relative_humidity"] = true;
+  }
+
   int httpResponseCode = https.GET();
   String payload = "{}";
   if (httpResponseCode > 0)
@@ -129,13 +143,62 @@ void Weather::update_data(void)
       Serial.println("Data unchanged. Nothing todo");
       return;
     }
-    payload = https.getString();
   }
   else
   {
     Serial.print("Error code: ");
     Serial.println(httpResponseCode);
   }
+
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, https.getStream(), DeserializationOption::Filter(filter));
+
+  Serial.println("Starting deserialization");
+  if (error)
+  {
+    Serial.print("deserializeJson() failed: ");
+    Serial.println(error.c_str());
+    return;
+  }
+  if (!(doc.containsKey("properties")))
+  {
+    return;
+  }
+  if (!(doc["properties"].containsKey("timeseries")))
+  {
+    return;
+  }
+  JsonArray timeseries = doc["properties"]["timeseries"];
+  double *temps = new double[this->num_hours + 1];
+  double *precipitation = new double[this->num_hours + 1];
+  double *wind_speeds = new double[this->num_hours + 1];
+  double *wind_directions = new double[this->num_hours + 1];
+  double *air_pressure = new double[this->num_hours + 1];
+  double *cloudiness = new double[this->num_hours + 1];
+  double *relative_humidity = new double[this->num_hours + 1];
+  JsonObject current_timeseries_data;
+  JsonObject current_timeseries_details;
+  for (uint8_t i = 0; i < this->num_hours + 1; ++i)
+  {
+    current_timeseries_data = timeseries[i]["data"];
+    current_timeseries_details = current_timeseries_data["instant"]["details"];
+    temps[i] = current_timeseries_details["air_temperature"];
+    precipitation[i] = current_timeseries_details["precipitation_amount"];
+    wind_speeds[i] = current_timeseries_details["wind_speed"];
+    wind_directions[i] = current_timeseries_details["wind_from_direction"];
+    air_pressure[i] = current_timeseries_details["air_pressure_at_sea_level"];
+    cloudiness[i] = current_timeseries_details["cloud_area_fraction"];
+    relative_humidity[i] = current_timeseries_details["relative_humidity"];
+  }
+  // Free resources
+  https.end();
+  this->temperature->update_vals(temps);
+  this->precipitation->update_vals(precipitation);
+  this->wind_speeds->update_vals(wind_speeds);
+  this->wind_direction->update_vals(wind_directions);
+  this->air_pressure->update_vals(air_pressure);
+  this->cloudiness->update_vals(cloudiness);
+  this->relative_humidity->update_vals(relative_humidity);
   int header_collected = https.headers();
   Serial.print("Collected ");
   Serial.print(header_collected);
@@ -150,65 +213,11 @@ void Weather::update_data(void)
 
     Serial.print("expires: ");
     Serial.println(expires);
-
-    Serial.println(strptime(expires.c_str(), "%a, %d %b %Y %H:%M:%S %Z", expired_time));
+    const char *expires_c = expires.c_str();
+    Serial.println(strptime(expires_c, "%a, %d %b %Y %H:%M:%S GMT", expired_time));
     Serial.println(this->expired_time->tm_hour);
     Serial.println(this->expired_time->tm_min);
   }
-  // Free resources
-  https.end();
-
-  JsonDocument *doc = new JsonDocument;
-  DeserializationError error = deserializeJson(*doc, payload);
-
-  if (error)
-  {
-    Serial.print("deserializeJson() failed: ");
-    Serial.println(error.c_str());
-    return;
-  }
-  if (!(doc->containsKey("properties")))
-  {
-    return;
-  }
-  if (!((*doc)["properties"].containsKey("timeseries")))
-  {
-    return;
-  }
-
-  JsonArray timeseries = (*doc)["properties"]["timeseries"];
-  double *temps = new double[this->num_hours + 1];
-  double *precipitation = new double[this->num_hours + 1];
-  double *wind_speeds = new double[this->num_hours + 1];
-  double *wind_directions = new double[this->num_hours + 1];
-  double *air_pressure = new double[this->num_hours + 1];
-#ifndef COMPLETE_WEATHER_DATA
-  double *cloudiness = new double[this->num_hours + 1];
-#endif
-  double *relative_humidity = new double[this->num_hours + 1];
-  JsonObject current_timeseries_data;
-  JsonObject current_timeseries_details;
-  for (uint8_t i = 0; i < this->num_hours + 1; ++i)
-  {
-    current_timeseries_data = timeseries[i]["data"];
-    current_timeseries_details = current_timeseries_data["instant"]["details"];
-    temps[i] = current_timeseries_details["air_temperature"];
-    precipitation[i] = current_timeseries_details["precipitation_amount"];
-    wind_speeds[i] = current_timeseries_details["wind_speed"];
-    wind_directions[i] = current_timeseries_details["wind_from_direction"];
-    air_pressure[i] = current_timeseries_details["air_pressure_at_sea_level"];
-    // cloudiness[i] =  current_timeseries_details["cloud_area_fraction"];
-    relative_humidity[i] = current_timeseries_details["relative_humidity"];
-  }
-  this->temperature->update_vals(temps);
-  this->precipitation->update_vals(precipitation);
-  this->wind_speeds->update_vals(wind_speeds);
-  this->wind_direction->update_vals(wind_directions);
-  this->air_pressure->update_vals(air_pressure);
-#ifdef COMPLETE_DATA
-  this->cloudiness->update_vals(cloudiness);
-#endif
-  this->relative_humidity->update_vals(relative_humidity);
 }
 
 bool Weather::is_expired(void)
@@ -267,7 +276,7 @@ WeatherData *Weather::get_relative_humidity()
 
 WeatherData *Weather::get_wind_speeds()
 {
-  this->wind_speeds;
+  return this->wind_speeds;
 }
 
 WeatherData *Weather::get_wind_direction()
@@ -275,9 +284,7 @@ WeatherData *Weather::get_wind_direction()
   return this->wind_direction;
 }
 
-#ifdef COMPLETE_WEATHER_DATA
 WeatherData *Weather::get_cloudiness()
 {
   return this->cloudiness;
 }
-#endif

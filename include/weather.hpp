@@ -17,20 +17,14 @@ private:
   double latitude;
   uint16_t altitude;
   int8_t utc_offset;
-#ifdef COMPLETE_WEATHER_DATA
   const char *url = "https://api.met.no/weatherapi/locationforecast/2.0/complete";
-#else
-  const char *url = "https://api.met.no/weatherapi/locationforecast/2.0/compact";
-#endif
   const uint8_t num_hours = NUM_HOURS;
   WeatherData *temperature;
   WeatherData *precipitation;
   WeatherData *wind_speeds;
   WeatherData *wind_direction;
   WeatherData *air_pressure;
-#ifdef COMPLETE_WEATHER_DATA
   WeatherData *cloudiness;
-#endif
   WeatherData *relative_humidity;
 
 public:
@@ -47,9 +41,7 @@ public:
   WeatherData *get_wind_speeds();
   WeatherData *get_wind_direction();
   WeatherData *get_air_pressure();
-#ifdef COMPLETE_WEATHER_DATA
   WeatherData *get_cloudiness();
-#endif
   WeatherData *get_relative_humidity();
 };
 

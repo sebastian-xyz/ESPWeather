@@ -19,6 +19,7 @@ private:
   int8_t utc_offset;
   const char *url = "https://api.met.no/weatherapi/locationforecast/2.0/complete";
   const uint8_t num_hours = NUM_HOURS;
+  WeatherData *dew_point;
   WeatherData *temperature;
   WeatherData *precipitation;
   WeatherData *wind_speeds;
@@ -43,6 +44,7 @@ public:
   WeatherData *get_air_pressure();
   WeatherData *get_cloudiness();
   WeatherData *get_relative_humidity();
+  WeatherData *get_dew_point();
 };
 
 #endif

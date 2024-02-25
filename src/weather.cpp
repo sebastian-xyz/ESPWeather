@@ -49,6 +49,7 @@ Weather::Weather(double latitude, double longitude)
   this->local_time = new tm;
   this->expired_time = new tm;
   this->temperature = new WeatherData(this->num_hours);
+  this->dew_point = new WeatherData(this->num_hours);
   this->precipitation = new WeatherData(this->num_hours);
   this->wind_speeds = new WeatherData(this->num_hours);
   this->wind_direction = new WeatherData(this->num_hours);
@@ -66,6 +67,7 @@ Weather::Weather(double latitude, double longitude, uint16_t altitude)
   this->local_time = new tm;
   this->expired_time = new tm;
   this->temperature = new WeatherData(this->num_hours);
+  this->dew_point = new WeatherData(this->num_hours);
   this->precipitation = new WeatherData(this->num_hours);
   this->wind_speeds = new WeatherData(this->num_hours);
   this->wind_direction = new WeatherData(this->num_hours);
@@ -85,6 +87,14 @@ Weather::~Weather()
 {
   delete this->local_time;
   delete this->expired_time;
+  delete this->temperature;
+  delete this->dew_point;
+  delete this->precipitation;
+  delete this->wind_speeds;
+  delete this->wind_direction;
+  delete this->air_pressure;
+  delete this->cloudiness;
+  delete this->relative_humidity;
 }
 
 void Weather::update_location(double longitude, double latitude)
@@ -130,6 +140,7 @@ void Weather::update_data(void)
     filter["properties"]["timeseries"][i]["data"]["instant"]["air_pressure_at_sea_level"] = true;
     filter["properties"]["timeseries"][i]["data"]["instant"]["cloud_area_fraction"] = true;
     filter["properties"]["timeseries"][i]["data"]["instant"]["relative_humidity"] = true;
+    filter["properties"]["timeseries"][i]["data"]["instant"]["dew_point_temperature"] = true;
   }
 
   int httpResponseCode = https.GET();
@@ -176,6 +187,7 @@ void Weather::update_data(void)
   double *air_pressure = new double[this->num_hours + 1];
   double *cloudiness = new double[this->num_hours + 1];
   double *relative_humidity = new double[this->num_hours + 1];
+  double *dew_point = new double[this->num_hours + 1];
   JsonObject current_timeseries_data;
   JsonObject current_timeseries_details;
   for (uint8_t i = 0; i < this->num_hours + 1; ++i)
@@ -189,6 +201,7 @@ void Weather::update_data(void)
     air_pressure[i] = current_timeseries_details["air_pressure_at_sea_level"];
     cloudiness[i] = current_timeseries_details["cloud_area_fraction"];
     relative_humidity[i] = current_timeseries_details["relative_humidity"];
+    dew_point[i] = current_timeseries_details["dew_point_temperature"];
   }
   // Free resources
   https.end();
@@ -199,6 +212,7 @@ void Weather::update_data(void)
   this->air_pressure->update_vals(air_pressure);
   this->cloudiness->update_vals(cloudiness);
   this->relative_humidity->update_vals(relative_humidity);
+  this->dew_point->update_vals(dew_point);
   int header_collected = https.headers();
   Serial.print("Collected ");
   Serial.print(header_collected);
@@ -287,4 +301,9 @@ WeatherData *Weather::get_wind_direction()
 WeatherData *Weather::get_cloudiness()
 {
   return this->cloudiness;
+}
+
+WeatherData *Weather::get_dew_point()
+{
+  return this->dew_point;
 }

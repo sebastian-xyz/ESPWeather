@@ -1,0 +1,26 @@
+{
+  "name": "ESPWeather",
+  "version": "0.2.0",
+  "description": "A library for getting weather data from api.met.no",
+  "keywords": "esp32,weather",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/sebastian-xyz/ESPWeather.git"
+  },
+  "authors":
+  [
+    {
+      "name": "Sebastian Jung",
+      "email": "github@sjng.de",
+      "maintainer": true
+    }
+  ],
+  "license": "GPL-3.0-only",
+  "homepage": "https://github.com/sebastian-xyz/ESPWeather",
+  "dependencies": {
+    "bblanchon/ArduinoJson": "^7.0.2"
+  },
+  "frameworks": "*",
+  "platforms": "espressif32"
+}

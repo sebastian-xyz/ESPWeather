@@ -21,7 +21,7 @@ public:
   double get_maximum();
   double get_mean();
   double get_std();
-  double get_varaince();
+  double get_variance();
   double get_val_at_hour(uint8_t hour);
   double get_current();
 };

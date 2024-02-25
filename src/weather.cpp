@@ -97,12 +97,12 @@ Weather::~Weather()
   delete this->relative_humidity;
 }
 
-void Weather::update_location(double longitude, double latitude)
+void Weather::update_location(double latitude, double longitude)
 {
   this->longitude = longitude;
   this->latitude = latitude;
 }
-void Weather::update_location(double longitude, double latitude, double altitude)
+void Weather::update_location(double latitude, double longitude, uint16_t altitude)
 {
   this->longitude = longitude;
   this->latitude = latitude;

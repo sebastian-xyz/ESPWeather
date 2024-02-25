@@ -34,8 +34,8 @@ public:
   ~Weather();
   bool is_expired(void);
   void update_data(void);
-  void update_location(double longitude, double latitude);
-  void update_location(double longitude, double latitude, double altitude);
+  void update_location(double latitude, double longitude);
+  void update_location(double latitude, double longitude, uint16_t altitude);
   void set_utc_offset(int8_t utf_offset);
   WeatherData *get_temperature();
   WeatherData *get_precipitation();

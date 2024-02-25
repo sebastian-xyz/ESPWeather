@@ -26,7 +26,7 @@ double WeatherData::get_mean()
   return this->mean;
 }
 
-double WeatherData::get_varaince()
+double WeatherData::get_variance()
 {
   return this->variance;
 }

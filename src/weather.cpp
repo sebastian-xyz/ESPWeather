@@ -246,3 +246,38 @@ bool Weather::is_expired(void)
   }
   return false;
 }
+
+WeatherData *Weather::get_temperature()
+{
+  return this->temperature;
+}
+WeatherData *Weather::get_precipitation()
+{
+  return this->precipitation;
+}
+WeatherData *Weather::get_air_pressure()
+{
+  return this->air_pressure;
+}
+
+WeatherData *Weather::get_relative_humidity()
+{
+  return this->relative_humidity;
+}
+
+WeatherData *Weather::get_wind_speeds()
+{
+  this->wind_speeds;
+}
+
+WeatherData *Weather::get_wind_direction()
+{
+  return this->wind_direction;
+}
+
+#ifdef COMPLETE_WEATHER_DATA
+WeatherData *Weather::get_cloudiness()
+{
+  return this->cloudiness;
+}
+#endif

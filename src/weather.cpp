@@ -211,7 +211,7 @@ void Weather::update_data(void)
   this->relative_humidity->update_vals(relative_humidity);
 }
 
-bool Weather::is_expired()
+bool Weather::is_expired(void)
 {
   getLocalTime(this->local_time);
   int8_t day_add = 0;

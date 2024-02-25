@@ -42,7 +42,6 @@ public:
   void update_location(double longitude, double latitude);
   void update_location(double longitude, double latitude, double altitude);
   void set_utc_offset(int8_t utf_offset);
-  bool is_expired();
   WeatherData *get_temperature();
   WeatherData *get_precipitation();
   WeatherData *get_wind_speeds();

@@ -45,6 +45,7 @@ public:
   WeatherData *get_cloudiness();
   WeatherData *get_relative_humidity();
   WeatherData *get_dew_point();
+  tm *getExpiredTime();
 };
 
 #endif

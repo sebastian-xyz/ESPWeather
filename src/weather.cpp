@@ -133,14 +133,14 @@ void Weather::update_data(void)
   for (uint8_t i = 0; i < this->num_hours + 1; ++i)
   {
     filter["properties"]["timeseries"][i] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["air_temperature"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["precipitation_amount"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["wind_speed"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["wind_from_direction"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["air_pressure_at_sea_level"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["cloud_area_fraction"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["relative_humidity"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["dew_point_temperature"] = true;
+    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]["air_temperature"] = true;
+    filter["properties"]["timeseries"][i]["data"]["next_1_hours"]["details"]["precipitation_amount"] = true;
+    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]["wind_speed"] = true;
+    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]["wind_from_direction"] = true;
+    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]["air_pressure_at_sea_level"] = true;
+    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]["cloud_area_fraction"] = true;
+    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]["relative_humidity"] = true;
+    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]["dew_point_temperature"] = true;
   }
 
   int httpResponseCode = https.GET();
@@ -152,6 +152,25 @@ void Weather::update_data(void)
     if ((!this->last_modified.isEmpty()) && httpResponseCode == 304)
     {
       Serial.println("Data unchanged. Nothing todo");
+      int header_collected = https.headers();
+      Serial.print("Collected ");
+      Serial.print(header_collected);
+      Serial.println(" headers:");
+      if (header_collected == 2)
+      {
+        this->last_modified = https.header("last-modified");
+        String expires = https.header("expires");
+
+        Serial.print("last-modified: ");
+        Serial.println(this->last_modified);
+
+        Serial.print("expires: ");
+        Serial.println(expires);
+        const char *expires_c = expires.c_str();
+        Serial.println(strptime(expires_c, "%a, %d %b %Y %H:%M:%S GMT", expired_time));
+        Serial.println(this->expired_time->tm_hour);
+        Serial.println(this->expired_time->tm_min);
+      }
       return;
     }
   }
@@ -190,12 +209,15 @@ void Weather::update_data(void)
   double *dew_point = new double[this->num_hours + 1];
   JsonObject current_timeseries_data;
   JsonObject current_timeseries_details;
+  JsonObject current_timeseries_next_hour_details;
   for (uint8_t i = 0; i < this->num_hours + 1; ++i)
   {
     current_timeseries_data = timeseries[i]["data"];
     current_timeseries_details = current_timeseries_data["instant"]["details"];
+    current_timeseries_next_hour_details = current_timeseries_data["next_1_hours"]["details"];
+
     temps[i] = current_timeseries_details["air_temperature"];
-    precipitation[i] = current_timeseries_details["precipitation_amount"];
+    precipitation[i] = current_timeseries_next_hour_details["precipitation_amount"];
     wind_speeds[i] = current_timeseries_details["wind_speed"];
     wind_directions[i] = current_timeseries_details["wind_from_direction"];
     air_pressure[i] = current_timeseries_details["air_pressure_at_sea_level"];
@@ -216,7 +238,7 @@ void Weather::update_data(void)
   int header_collected = https.headers();
   Serial.print("Collected ");
   Serial.print(header_collected);
-  Serial.println("headers:");
+  Serial.println(" headers:");
   if (header_collected == 2)
   {
     this->last_modified = https.header("last-modified");
@@ -306,4 +328,9 @@ WeatherData *Weather::get_cloudiness()
 WeatherData *Weather::get_dew_point()
 {
   return this->dew_point;
+}
+
+tm *Weather::getExpiredTime()
+{
+  return this->expired_time;
 }

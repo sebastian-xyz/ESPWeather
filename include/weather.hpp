@@ -27,6 +27,7 @@ private:
   WeatherData *air_pressure;
   WeatherData *cloudiness;
   WeatherData *relative_humidity;
+  bool daylight_saving;
 
 public:
   Weather(double latitude, double longitude);
@@ -37,6 +38,7 @@ public:
   void update_location(double latitude, double longitude);
   void update_location(double latitude, double longitude, uint16_t altitude);
   void set_utc_offset(int8_t utf_offset);
+  void set_daylight_saving(bool daylight_saving);
   WeatherData *get_temperature();
   WeatherData *get_precipitation();
   WeatherData *get_wind_speeds();

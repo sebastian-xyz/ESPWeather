@@ -58,6 +58,7 @@ Weather::Weather(double latitude, double longitude)
   this->relative_humidity = new WeatherData(this->num_hours);
   this->last_modified = "";
   this->utc_offset = 0;
+  this->daylight_saving = false;
 }
 Weather::Weather(double latitude, double longitude, uint16_t altitude)
 {
@@ -76,6 +77,11 @@ Weather::Weather(double latitude, double longitude, uint16_t altitude)
   this->relative_humidity = new WeatherData(this->num_hours);
   this->last_modified = "";
   this->utc_offset = 0;
+}
+
+void Weather::set_daylight_saving(bool daylight_saving)
+{
+  this->daylight_saving = daylight_saving;
 }
 
 void Weather::set_utc_offset(int8_t utc_offset)
@@ -147,47 +153,65 @@ void Weather::update_data(void)
   String payload = "{}";
   if (httpResponseCode > 0)
   {
+#ifdef DEBUG_WEATHER
     Serial.print("HTTP Response code: ");
     Serial.println(httpResponseCode);
+#endif
     if ((!this->last_modified.isEmpty()) && httpResponseCode == 304)
     {
-      Serial.println("Data unchanged. Nothing todo");
       int header_collected = https.headers();
+#ifdef DEBUG_WEATHER
+      Serial.println("Data unchanged. Nothing todo");
       Serial.print("Collected ");
       Serial.print(header_collected);
       Serial.println(" headers:");
+#endif
       if (header_collected == 2)
       {
         this->last_modified = https.header("last-modified");
         String expires = https.header("expires");
+        const char *expires_c = expires.c_str();
+        char *end = strptime(expires_c, "%a, %d %b %Y %H:%M:%S GMT", this->expired_time);
+#ifdef DEBUG_WEATHER
+        if ((end == NULL) || end != "\0")
+        {
+          Serial.print("Found remaining char: ");
+          Serial.println(end);
+        }
+#endif
+#ifdef DEBUG_WEATHER
 
         Serial.print("last-modified: ");
         Serial.println(this->last_modified);
 
         Serial.print("expires: ");
         Serial.println(expires);
-        const char *expires_c = expires.c_str();
-        Serial.println(strptime(expires_c, "%a, %d %b %Y %H:%M:%S GMT", expired_time));
-        Serial.println(this->expired_time->tm_hour);
-        Serial.println(this->expired_time->tm_min);
+#endif
       }
       return;
     }
   }
   else
   {
+#ifdef DEBUG_WEATHER
     Serial.print("Error code: ");
     Serial.println(httpResponseCode);
+#endif
   }
 
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, https.getStream(), DeserializationOption::Filter(filter));
 
+#ifdef DEBUG_WEATHER
   Serial.println("Starting deserialization");
+#endif
   if (error)
   {
+
+#ifdef DEBUG_WEATHER
     Serial.print("deserializeJson() failed: ");
     Serial.println(error.c_str());
+#endif
     return;
   }
   if (!(doc.containsKey("properties")))
@@ -236,23 +260,32 @@ void Weather::update_data(void)
   this->relative_humidity->update_vals(relative_humidity);
   this->dew_point->update_vals(dew_point);
   int header_collected = https.headers();
+#ifdef DEBUG_WEATHER
   Serial.print("Collected ");
   Serial.print(header_collected);
   Serial.println(" headers:");
+#endif
   if (header_collected == 2)
   {
     this->last_modified = https.header("last-modified");
     String expires = https.header("expires");
+    const char *expires_c = expires.c_str();
+    char *end = strptime(expires_c, "%a, %d %b %Y %H:%M:%S GMT", this->expired_time);
+#ifdef DEBUG_WEATHER
+    if ((end == NULL) || end != "\0")
+    {
+      Serial.print("Found remaining char: ");
+      Serial.println(end);
+    }
+#endif
 
+#ifdef DEBUG_WEATHER
     Serial.print("last-modified: ");
     Serial.println(this->last_modified);
 
     Serial.print("expires: ");
     Serial.println(expires);
-    const char *expires_c = expires.c_str();
-    Serial.println(strptime(expires_c, "%a, %d %b %Y %H:%M:%S GMT", expired_time));
-    Serial.println(this->expired_time->tm_hour);
-    Serial.println(this->expired_time->tm_min);
+#endif DEBUG_WEATHER
   }
 }
 
@@ -260,17 +293,17 @@ bool Weather::is_expired(void)
 {
   getLocalTime(this->local_time);
   int8_t day_add = 0;
-  int8_t hour = this->expired_time->tm_hour + utc_offset;
+  int8_t hour = this->expired_time->tm_hour + this->utc_offset + (int8_t)this->daylight_saving;
   int year = this->expired_time->tm_year;
   if (hour > 23)
   {
     day_add = 1;
-    hour = (this->expired_time->tm_hour + this->utc_offset - 24);
+    hour = (hour - 24);
   }
   else if (hour < 0)
   {
     day_add = -1;
-    hour = 24 - (this->expired_time->tm_hour + this->utc_offset);
+    hour = 24 - hour;
   }
   if (this->expired_time->tm_yday + day_add > 365)
   {

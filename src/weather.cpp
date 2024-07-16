@@ -41,8 +41,9 @@ const char *root_cert =
     "jjxDah2nGN59PRbxYvnKkKj9\n"
     "-----END CERTIFICATE-----\n";
 
-Weather::Weather(double latitude, double longitude)
+Weather::Weather(double latitude, double longitude, String user_agent)
 {
+  this->user_agent = user_agent;
   this->longitude = longitude;
   this->latitude = latitude;
   this->altitude = 0;
@@ -57,11 +58,15 @@ Weather::Weather(double latitude, double longitude)
   this->cloudiness = new WeatherData(this->num_hours);
   this->relative_humidity = new WeatherData(this->num_hours);
   this->last_modified = "";
+  this->symbol_code_next_1h = "";
+  this->symbol_code_next_12h = "";
+  this->symbol_code_next_6h = "";
   this->utc_offset = 0;
   this->daylight_saving = false;
 }
-Weather::Weather(double latitude, double longitude, uint16_t altitude)
+Weather::Weather(double latitude, double longitude, uint16_t altitude, String user_agent)
 {
+  this->user_agent = user_agent;
   this->longitude = longitude;
   this->latitude = latitude;
   this->altitude = altitude;
@@ -76,6 +81,10 @@ Weather::Weather(double latitude, double longitude, uint16_t altitude)
   this->cloudiness = new WeatherData(this->num_hours);
   this->relative_humidity = new WeatherData(this->num_hours);
   this->last_modified = "";
+  this->symbol_code_next_1h = "";
+  this->symbol_code_next_12h = "";
+  this->symbol_code_next_6h = "";
+  this->daylight_saving = false;
   this->utc_offset = 0;
 }
 
@@ -125,7 +134,7 @@ void Weather::update_data(void)
   sprintf(buffer, "?lat=%.2f&lon=%.2f&altitude=%d", this->latitude, this->longitude, this->altitude);
   String url = (String)this->url + (String)buffer;
   https.begin(*client, url.c_str());
-  https.setUserAgent("Mozilla/5.0 (Linux x86_64)");
+  https.setUserAgent(this->user_agent);
   if (!this->last_modified.isEmpty())
   {
     https.addHeader("If-Modifed-Since", this->last_modified);
@@ -147,6 +156,10 @@ void Weather::update_data(void)
     filter["properties"]["timeseries"][i]["data"]["instant"]["details"]["cloud_area_fraction"] = true;
     filter["properties"]["timeseries"][i]["data"]["instant"]["details"]["relative_humidity"] = true;
     filter["properties"]["timeseries"][i]["data"]["instant"]["details"]["dew_point_temperature"] = true;
+    if (i == 0)
+    {
+      filter["properties"]["timeseries"][i]["data"]["next_1_hours"]["summary"]["symbol_code"] = true;
+    }
   }
 
   int httpResponseCode = https.GET();
@@ -234,6 +247,36 @@ void Weather::update_data(void)
   JsonObject current_timeseries_data;
   JsonObject current_timeseries_details;
   JsonObject current_timeseries_next_hour_details;
+  if (timeseries[0]["data"].containsKey("next_1_hours"))
+  {
+    if (timeseries[0]["data"]["next_1_hours"].containsKey("summary"))
+    {
+      if (timeseries[0]["data"]["next_1_hours"]["summary"].containsKey("symbol_code"))
+      {
+        this->symbol_code_next_1h = String((const char *)timeseries[0]["data"]["next_1_hours"]["summary"]["symbol_code"]);
+      }
+    }
+  }
+  if (timeseries[0]["data"].containsKey("next_6_hours"))
+  {
+    if (timeseries[0]["data"]["next_6_hours"].containsKey("summary"))
+    {
+      if (timeseries[0]["data"]["next_6_hours"]["summary"].containsKey("symbol_code"))
+      {
+        this->symbol_code_next_6h = String((const char *)timeseries[0]["data"]["next_6_hours"]["summary"]["symbol_code"]);
+      }
+    }
+  }
+  if (timeseries[0]["data"].containsKey("next_12_hours"))
+  {
+    if (timeseries[0]["data"]["next_12_hours"].containsKey("summary"))
+    {
+      if (timeseries[0]["data"]["next_12_hours"]["summary"].containsKey("symbol_code"))
+      {
+        this->symbol_code_next_12h = String((const char *)timeseries[0]["data"]["next_12_hours"]["summary"]["symbol_code"]);
+      }
+    }
+  }
   for (uint8_t i = 0; i < this->num_hours + 1; ++i)
   {
     current_timeseries_data = timeseries[i]["data"];
@@ -285,7 +328,9 @@ void Weather::update_data(void)
 
     Serial.print("expires: ");
     Serial.println(expires);
-#endif DEBUG_WEATHER
+    Serial.println(this->expired_time->tm_hour);
+    Serial.println(this->expired_time->tm_min);
+#endif
   }
 }
 
@@ -366,4 +411,16 @@ WeatherData *Weather::get_dew_point()
 tm *Weather::getExpiredTime()
 {
   return this->expired_time;
+}
+String Weather::get_symbol_code_next_1h()
+{
+  return this->symbol_code_next_1h;
+}
+String Weather::get_symbol_code_next_12h()
+{
+  return this->symbol_code_next_12h;
+}
+String Weather::get_symbol_code_next_6h()
+{
+  return this->symbol_code_next_6h;
 }

@@ -10,6 +10,7 @@ class Weather
 {
 
 private:
+  String user_agent;
   String last_modified;
   tm *expired_time;
   tm *local_time;
@@ -27,11 +28,14 @@ private:
   WeatherData *air_pressure;
   WeatherData *cloudiness;
   WeatherData *relative_humidity;
+  String symbol_code_next_1h;
+  String symbol_code_next_6h;
+  String symbol_code_next_12h;
   bool daylight_saving;
 
 public:
-  Weather(double latitude, double longitude);
-  Weather(double latitude, double longitude, uint16_t altitude);
+  Weather(double latitude, double longitude, String user_agent);
+  Weather(double latitude, double longitude, uint16_t altitude, String user_agent);
   ~Weather();
   bool is_expired(void);
   void update_data(void);
@@ -48,6 +52,9 @@ public:
   WeatherData *get_relative_humidity();
   WeatherData *get_dew_point();
   tm *getExpiredTime();
+  String get_symbol_code_next_1h();
+  String get_symbol_code_next_6h();
+  String get_symbol_code_next_12h();
 };
 
 #endif

@@ -129,7 +129,6 @@ void Weather::update_data(void)
   WiFiClientSecure *client = new WiFiClientSecure;
   client->setCACert(root_cert);
   HTTPClient https;
-  https.useHTTP10(true);
   char *buffer = new char[512];
   sprintf(buffer, "?lat=%.2f&lon=%.2f&altitude=%d", this->latitude, this->longitude, this->altitude);
   String url = (String)this->url + (String)buffer;
@@ -348,17 +347,19 @@ bool Weather::is_expired(void)
   else if (hour < 0)
   {
     day_add = -1;
-    hour = 24 - hour;
+    hour = 24 + hour;
   }
   if (this->expired_time->tm_yday + day_add > 365)
   {
     year += 1;
   }
 
+  // Check if the expiration year is less than the current year or if the expiration day of the year (with day adjustment) is less than the current day of the year
   if ((year < this->local_time->tm_year) || ((this->expired_time->tm_yday + day_add) < this->local_time->tm_yday))
   {
     return true;
   }
+  // Check if the expiration hour is less than the current hour
   if (hour < this->local_time->tm_hour)
   {
     return true;

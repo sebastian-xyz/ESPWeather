@@ -200,6 +200,8 @@ void Weather::update_data(void)
         Serial.println(expires);
 #endif
       }
+      delete buffer;
+      delete client;
       return;
     }
   }
@@ -224,14 +226,20 @@ void Weather::update_data(void)
     Serial.print("deserializeJson() failed: ");
     Serial.println(error.c_str());
 #endif
+    delete buffer;
+    delete client;
     return;
   }
   if (!(doc.containsKey("properties")))
   {
+    delete buffer;
+    delete client;
     return;
   }
   if (!(doc["properties"].containsKey("timeseries")))
   {
+    delete buffer;
+    delete client;
     return;
   }
   JsonArray timeseries = doc["properties"]["timeseries"];
@@ -331,6 +339,14 @@ void Weather::update_data(void)
     Serial.println(this->expired_time->tm_min);
 #endif
   }
+  delete temps;
+  delete precipitation;
+  delete wind_speeds;
+  delete wind_directions;
+  delete air_pressure;
+  delete cloudiness;
+  delete relative_humidity;
+  delete dew_point;
 }
 
 bool Weather::is_expired(void)
@@ -359,6 +375,7 @@ bool Weather::is_expired(void)
   {
     return true;
   }
+
   // Check if the expiration hour is less than the current hour
   if (hour < this->local_time->tm_hour)
   {

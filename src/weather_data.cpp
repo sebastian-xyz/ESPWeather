@@ -43,7 +43,7 @@ double WeatherData::get_val_at_hour(uint8_t hour)
 
 WeatherData::~WeatherData()
 {
-  delete this->vals;
+  delete[] this->vals;
 }
 
 void WeatherData::update_vals(double *vals)

@@ -42,8 +42,9 @@ const char *root_cert =
     "jjxDah2nGN59PRbxYvnKkKj9\n"
     "-----END CERTIFICATE-----\n";
 
-Weather::Weather(double latitude, double longitude, String user_agent) {
-  this->user_agent = user_agent;
+Weather::Weather(double latitude, double longitude)
+{
+  this->user_agent = ESPWeatherUserAgent;
   this->longitude = longitude;
   this->latitude = latitude;
   this->altitude = 0;
@@ -64,9 +65,9 @@ Weather::Weather(double latitude, double longitude, String user_agent) {
   this->utc_offset = 0;
   this->daylight_saving = false;
 }
-Weather::Weather(double latitude, double longitude, uint16_t altitude,
-                 String user_agent) {
-  this->user_agent = user_agent;
+Weather::Weather(double latitude, double longitude, uint16_t altitude)
+{
+  this->user_agent = ESPWeatherUserAgent;
   this->longitude = longitude;
   this->latitude = latitude;
   this->altitude = altitude;
@@ -88,15 +89,18 @@ Weather::Weather(double latitude, double longitude, uint16_t altitude,
   this->utc_offset = 0;
 }
 
-void Weather::set_daylight_saving(bool daylight_saving) {
+void Weather::set_daylight_saving(bool daylight_saving)
+{
   this->daylight_saving = daylight_saving;
 }
 
-void Weather::set_utc_offset(int8_t utc_offset) {
+void Weather::set_utc_offset(int8_t utc_offset)
+{
   this->utc_offset = utc_offset;
 }
 
-Weather::~Weather() {
+Weather::~Weather()
+{
   delete this->local_time;
   delete this->expired_time;
   delete this->temperature;
@@ -109,18 +113,21 @@ Weather::~Weather() {
   delete this->relative_humidity;
 }
 
-void Weather::update_location(double latitude, double longitude) {
+void Weather::update_location(double latitude, double longitude)
+{
   this->longitude = longitude;
   this->latitude = latitude;
 }
 void Weather::update_location(double latitude, double longitude,
-                              uint16_t altitude) {
+                              uint16_t altitude)
+{
   this->longitude = longitude;
   this->latitude = latitude;
   this->altitude = altitude;
 }
 
-void Weather::update_data(void) {
+void Weather::update_data(void)
+{
   std::unique_ptr<WiFiClientSecure> client(new WiFiClientSecure);
   std::unique_ptr<char[]> buffer(new char[512]);
   client->setCACert(root_cert);
@@ -130,7 +137,8 @@ void Weather::update_data(void) {
   String url = (String)this->url + (String)buffer.get();
   https.begin(*client, url.c_str());
   https.setUserAgent(this->user_agent);
-  if (!this->last_modified.isEmpty()) {
+  if (!this->last_modified.isEmpty())
+  {
     https.addHeader("If-Modifed-Since", this->last_modified);
   }
   const char *headerKeys[] = {"last-modified", "expires"};
@@ -139,7 +147,8 @@ void Weather::update_data(void) {
 
   JsonDocument filter;
 
-  for (uint8_t i = 0; i < this->num_hours + 1; ++i) {
+  for (uint8_t i = 0; i < this->num_hours + 1; ++i)
+  {
     filter["properties"]["timeseries"][i] = true;
     filter["properties"]["timeseries"][i]["data"]["instant"]["details"]
           ["air_temperature"] = true;
@@ -157,7 +166,8 @@ void Weather::update_data(void) {
           ["relative_humidity"] = true;
     filter["properties"]["timeseries"][i]["data"]["instant"]["details"]
           ["dew_point_temperature"] = true;
-    if (i == 0) {
+    if (i == 0)
+    {
       filter["properties"]["timeseries"][i]["data"]["next_1_hours"]["summary"]
             ["symbol_code"] = true;
     }
@@ -165,12 +175,14 @@ void Weather::update_data(void) {
 
   int httpResponseCode = https.GET();
   String payload = "{}";
-  if (httpResponseCode > 0) {
+  if (httpResponseCode > 0)
+  {
 #ifdef DEBUG_WEATHER
     Serial.print("HTTP Response code: ");
     Serial.println(httpResponseCode);
 #endif
-    if ((!this->last_modified.isEmpty()) && httpResponseCode == 304) {
+    if ((!this->last_modified.isEmpty()) && httpResponseCode == 304)
+    {
       int header_collected = https.headers();
 #ifdef DEBUG_WEATHER
       Serial.println("Data unchanged. Nothing todo");
@@ -178,14 +190,16 @@ void Weather::update_data(void) {
       Serial.print(header_collected);
       Serial.println(" headers:");
 #endif
-      if (header_collected == 2) {
+      if (header_collected == 2)
+      {
         this->last_modified = https.header("last-modified");
         String expires = https.header("expires");
         const char *expires_c = expires.c_str();
         char *end = strptime(expires_c, "%a, %d %b %Y %H:%M:%S GMT",
                              this->expired_time);
 #ifdef DEBUG_WEATHER
-        if ((end == NULL) || end != "\0") {
+        if ((end == NULL) || end != "\0")
+        {
           Serial.print("Found remaining char: ");
           Serial.println(end);
         }
@@ -201,7 +215,9 @@ void Weather::update_data(void) {
       }
       return;
     }
-  } else {
+  }
+  else
+  {
 #ifdef DEBUG_WEATHER
     Serial.print("Error code: ");
     Serial.println(httpResponseCode);
@@ -215,7 +231,8 @@ void Weather::update_data(void) {
 #ifdef DEBUG_WEATHER
   Serial.println("Starting deserialization");
 #endif
-  if (error) {
+  if (error)
+  {
 
 #ifdef DEBUG_WEATHER
     Serial.print("deserializeJson() failed: ");
@@ -223,10 +240,12 @@ void Weather::update_data(void) {
 #endif
     return;
   }
-  if (!(doc.containsKey("properties"))) {
+  if (!(doc.containsKey("properties")))
+  {
     return;
   }
-  if (!(doc["properties"].containsKey("timeseries"))) {
+  if (!(doc["properties"].containsKey("timeseries")))
+  {
     return;
   }
   JsonArray timeseries = doc["properties"]["timeseries"];
@@ -241,37 +260,47 @@ void Weather::update_data(void) {
   JsonObject current_timeseries_data;
   JsonObject current_timeseries_details;
   JsonObject current_timeseries_next_hour_details;
-  if (timeseries[0]["data"].containsKey("next_1_hours")) {
-    if (timeseries[0]["data"]["next_1_hours"].containsKey("summary")) {
+  if (timeseries[0]["data"].containsKey("next_1_hours"))
+  {
+    if (timeseries[0]["data"]["next_1_hours"].containsKey("summary"))
+    {
       if (timeseries[0]["data"]["next_1_hours"]["summary"].containsKey(
-              "symbol_code")) {
+              "symbol_code"))
+      {
         this->symbol_code_next_1h =
             String((const char *)timeseries[0]["data"]["next_1_hours"]
                                            ["summary"]["symbol_code"]);
       }
     }
   }
-  if (timeseries[0]["data"].containsKey("next_6_hours")) {
-    if (timeseries[0]["data"]["next_6_hours"].containsKey("summary")) {
+  if (timeseries[0]["data"].containsKey("next_6_hours"))
+  {
+    if (timeseries[0]["data"]["next_6_hours"].containsKey("summary"))
+    {
       if (timeseries[0]["data"]["next_6_hours"]["summary"].containsKey(
-              "symbol_code")) {
+              "symbol_code"))
+      {
         this->symbol_code_next_6h =
             String((const char *)timeseries[0]["data"]["next_6_hours"]
                                            ["summary"]["symbol_code"]);
       }
     }
   }
-  if (timeseries[0]["data"].containsKey("next_12_hours")) {
-    if (timeseries[0]["data"]["next_12_hours"].containsKey("summary")) {
+  if (timeseries[0]["data"].containsKey("next_12_hours"))
+  {
+    if (timeseries[0]["data"]["next_12_hours"].containsKey("summary"))
+    {
       if (timeseries[0]["data"]["next_12_hours"]["summary"].containsKey(
-              "symbol_code")) {
+              "symbol_code"))
+      {
         this->symbol_code_next_12h =
             String((const char *)timeseries[0]["data"]["next_12_hours"]
                                            ["summary"]["symbol_code"]);
       }
     }
   }
-  for (uint8_t i = 0; i < this->num_hours + 1; ++i) {
+  for (uint8_t i = 0; i < this->num_hours + 1; ++i)
+  {
     current_timeseries_data = timeseries[i]["data"];
     current_timeseries_details = current_timeseries_data["instant"]["details"];
     current_timeseries_next_hour_details =
@@ -302,14 +331,16 @@ void Weather::update_data(void) {
   Serial.print(header_collected);
   Serial.println(" headers:");
 #endif
-  if (header_collected == 2) {
+  if (header_collected == 2)
+  {
     this->last_modified = https.header("last-modified");
     String expires = https.header("expires");
     const char *expires_c = expires.c_str();
     char *end =
         strptime(expires_c, "%a, %d %b %Y %H:%M:%S GMT", this->expired_time);
 #ifdef DEBUG_WEATHER
-    if ((end == NULL) || end != "\0") {
+    if ((end == NULL) || end != "\0")
+    {
       Serial.print("Found remaining char: ");
       Serial.println(end);
     }
@@ -336,33 +367,46 @@ void Weather::update_data(void) {
   delete[] dew_point;
 }
 
-bool is_leap_year(int year) {
-  if (year % 4 != 0) {
+bool is_leap_year(int year)
+{
+  if (year % 4 != 0)
+  {
     return false;
-  } else if (year % 100 != 0) {
+  }
+  else if (year % 100 != 0)
+  {
     return true;
-  } else if (year % 400 != 0) {
+  }
+  else if (year % 400 != 0)
+  {
     return false;
-  } else {
+  }
+  else
+  {
     return true;
   }
 }
 
-bool Weather::is_expired(void) {
+bool Weather::is_expired(void)
+{
   getLocalTime(this->local_time);
   int8_t day_add = 0;
   int8_t hour = this->expired_time->tm_hour + this->utc_offset +
                 (int8_t)this->daylight_saving;
   int year = this->expired_time->tm_year;
-  if (hour > 23) {
+  if (hour > 23)
+  {
     day_add = 1;
     hour = (hour - 24);
-  } else if (hour < 0) {
+  }
+  else if (hour < 0)
+  {
     day_add = -1;
     hour = 24 + hour;
   }
   int days_in_year = is_leap_year(year) ? 366 : 365;
-  if (this->expired_time->tm_yday + day_add > days_in_year) {
+  if (this->expired_time->tm_yday + day_add > days_in_year)
+  {
     year += 1;
   }
 
@@ -370,16 +414,19 @@ bool Weather::is_expired(void) {
   // expiration day of the year (with day adjustment) is less than the current
   // day of the year
   if ((year < this->local_time->tm_year) ||
-      ((this->expired_time->tm_yday + day_add) < this->local_time->tm_yday)) {
+      ((this->expired_time->tm_yday + day_add) < this->local_time->tm_yday))
+  {
     return true;
   }
 
   // Check if the expiration hour is less than the current hour
-  if (hour < this->local_time->tm_hour) {
+  if (hour < this->local_time->tm_hour)
+  {
     return true;
   }
   if ((hour == this->local_time->tm_hour) &&
-      (this->expired_time->tm_min < this->local_time->tm_min)) {
+      (this->expired_time->tm_min < this->local_time->tm_min))
+  {
     return true;
   }
   return false;
@@ -389,7 +436,8 @@ WeatherData *Weather::get_temperature() { return this->temperature; }
 WeatherData *Weather::get_precipitation() { return this->precipitation; }
 WeatherData *Weather::get_air_pressure() { return this->air_pressure; }
 
-WeatherData *Weather::get_relative_humidity() {
+WeatherData *Weather::get_relative_humidity()
+{
   return this->relative_humidity;
 }
 
@@ -403,7 +451,8 @@ WeatherData *Weather::get_dew_point() { return this->dew_point; }
 
 tm *Weather::getExpiredTime() { return this->expired_time; }
 String Weather::get_symbol_code_next_1h() { return this->symbol_code_next_1h; }
-String Weather::get_symbol_code_next_12h() {
+String Weather::get_symbol_code_next_12h()
+{
   return this->symbol_code_next_12h;
 }
 String Weather::get_symbol_code_next_6h() { return this->symbol_code_next_6h; }

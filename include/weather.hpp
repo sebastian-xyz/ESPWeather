@@ -5,6 +5,7 @@
 #include "weather_data.hpp"
 
 #define NUM_HOURS 24
+#define ESPWeatherUserAgent "github.com/sebastian-xyz/ESPWeather/v1.0"
 
 class Weather
 {

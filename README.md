@@ -11,7 +11,7 @@ platform = espressif32
 board = esp32dev
 framework = arduino
 lib_deps = 
-	https://github.com/sebastian-xyz/ESPWeather.git
+    https://github.com/sebastian-xyz/ESPWeather.git
 ```
 
 
@@ -91,13 +91,15 @@ The `Weather` class provides an interface to retrieve and manage weather data fr
 
 | **Return Type**         | _Function_                                  | Description                                                        |
 |-------------------------|---------------------------------------------|--------------------------------------------------------------------|
-|                         | _Weather(double latitude, double longitude, String user_agent)_ | Constructor to initialize with latitude, longitude, and user agent.|
-|                         | _Weather(double latitude, double longitude, uint16_t altitude, String user_agent)_ | Constructor with latitude, longitude, altitude, and user agent.    |
+|                         | _Weather(float latitude, float longitude)_  | Constructor to initialize with latitude and longitude.             |
+|                         | _Weather(float latitude, float longitude, uint16_t altitude)_ | Constructor with latitude, longitude, and altitude.    |
+|                         | _Weather(uint8_t num_hours, float latitude, float longitude)_ | Constructor with hours, latitude, longitude.         |
+|                         | _Weather(uint8_t num_hours, float latitude, float longitude, uint16_t altitude)_ | Constructor with hours, latitude, longitude, altitude. |
 |                         | _~Weather()_                                | Destructor.                                                        |
 | **bool**                | _is_expired(void)_                          | Checks if the weather data is expired.                             |
 | **void**                | _update_data(void)_                         | Updates the weather data from the API.                             |
-| **void**                | _update_location(double latitude, double longitude)_ | Updates the location (latitude and longitude).              |
-| **void**                | _update_location(double latitude, double longitude, uint16_t altitude)_ | Updates the location with latitude, longitude, and altitude. |
+| **void**                | _update_location(float latitude, float longitude)_ | Updates the location (latitude and longitude).              |
+| **void**                | _update_location(float latitude, float longitude, uint16_t altitude)_ | Updates the location with latitude, longitude, and altitude. |
 | **void**                | _set_utc_offset(int8_t utf_offset)_         | Sets the UTC offset for the location.                              |
 | **void**                | _set_daylight_saving(bool daylight_saving)_ | Sets the daylight saving status.                                   |
 | **WeatherData\***       | _get_temperature()_                         | Returns a pointer to temperature data.                             |
@@ -125,16 +127,16 @@ The `WeatherData` class represents weather parameter data for a set of hours, pr
 | **Return Type** | _Function_                              | Description                                                  |
 |-----------------|-----------------------------------------|--------------------------------------------------------------|
 |                 | _WeatherData(uint8_t num_hours)_        | Constructor that initializes with the number of hours.        |
-|                 | _WeatherData(double *vals)_             | Constructor that initializes with a pointer to values array.  |
+|                 | _WeatherData(float *vals)_              | Constructor that initializes with a pointer to values array.  |
 |                 | _~WeatherData()_                        | Destructor.                                                  |
-| **void**        | _update_vals(double *vals)_             | Updates the internal values array.                            |
-| **double**      | _get_minimum()_                         | Returns the minimum value.                                    |
-| **double**      | _get_maximum()_                         | Returns the maximum value.                                    |
-| **double**      | _get_mean()_                            | Returns the mean value.                                       |
-| **double**      | _get_std()_                             | Returns the standard deviation.                               |
-| **double**      | _get_variance()_                        | Returns the variance.                                         |
-| **double**      | _get_val_at_hour(uint8_t hour)_         | Returns the value at the specified hour.                      |
-| **double**      | _get_current()_                         | Returns the value for the current hour.                       |
+| **void**        | _update_vals(float *vals)_              | Updates the internal values array.                            |
+| **float**       | _get_minimum()_                         | Returns the minimum value.                                    |
+| **float**       | _get_maximum()_                         | Returns the maximum value.                                    |
+| **float**       | _get_mean()_                            | Returns the mean value.                                       |
+| **float**       | _get_std()_                             | Returns the standard deviation.                               |
+| **float**       | _get_variance()_                        | Returns the variance.                                         |
+| **float**       | _get_val_at_hour(uint8_t hour)_         | Returns the value at the specified hour.                      |
+| **float**       | _get_current()_                         | Returns the value for the current hour.                       |
 
 > **Note:**  
 > The WeatherData class does not expose public data members; all access is through its public methods.

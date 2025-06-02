@@ -5,24 +5,24 @@ class WeatherData
 {
 
 private:
-  double *vals;
-  double minimum;
-  double maxmimum;
-  double mean;
-  double variance;
+  float *vals;
+  float minimum;
+  float maxmimum;
+  float mean;
+  float variance;
   uint8_t num_hours;
 
 public:
   WeatherData(uint8_t num_hours);
-  WeatherData(double *vals);
+  WeatherData(float *vals);
   ~WeatherData();
-  void update_vals(double *vals);
-  double get_minimum();
-  double get_maximum();
-  double get_mean();
-  double get_std();
-  double get_variance();
-  double get_val_at_hour(uint8_t hour);
-  double get_current();
+  void update_vals(float *vals);
+  float get_minimum();
+  float get_maximum();
+  float get_mean();
+  float get_std();
+  float get_variance();
+  float get_val_at_hour(uint8_t hour);
+  float get_current();
 };
 #endif

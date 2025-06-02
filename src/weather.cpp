@@ -1,10 +1,10 @@
-#include "weather.hpp"
 #include "math.h"
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <memory>
 #include <time.h>
+#include "weather.hpp"
 
 const char *root_cert =
     "-----BEGIN CERTIFICATE-----\n"
@@ -42,8 +42,9 @@ const char *root_cert =
     "jjxDah2nGN59PRbxYvnKkKj9\n"
     "-----END CERTIFICATE-----\n";
 
-Weather::Weather(double latitude, double longitude)
+Weather::Weather(float latitude, float longitude)
 {
+  this->num_hours = ESPWeatherNumHours;
   this->user_agent = ESPWeatherUserAgent;
   this->longitude = longitude;
   this->latitude = latitude;
@@ -64,9 +65,46 @@ Weather::Weather(double latitude, double longitude)
   this->symbol_code_next_6h = "";
   this->utc_offset = 0;
   this->daylight_saving = false;
+  this->expired_time->tm_year = 0; // Years since 1900
+  this->expired_time->tm_mon = 0;  // Months since January (0-11)
+  this->expired_time->tm_mday = 0; // Day of the month
+  this->expired_time->tm_hour = 0;
+  this->expired_time->tm_min = 0;
+  this->expired_time->tm_sec = 0;
 }
-Weather::Weather(double latitude, double longitude, uint16_t altitude)
+Weather::Weather(uint8_t num_hours, float latitude, float longitude)
 {
+  this->num_hours = num_hours;
+  this->user_agent = ESPWeatherUserAgent;
+  this->longitude = longitude;
+  this->latitude = latitude;
+  this->altitude = 0;
+  this->local_time = new tm;
+  this->expired_time = new tm;
+  this->temperature = new WeatherData(this->num_hours);
+  this->dew_point = new WeatherData(this->num_hours);
+  this->precipitation = new WeatherData(this->num_hours);
+  this->wind_speeds = new WeatherData(this->num_hours);
+  this->wind_direction = new WeatherData(this->num_hours);
+  this->air_pressure = new WeatherData(this->num_hours);
+  this->cloudiness = new WeatherData(this->num_hours);
+  this->relative_humidity = new WeatherData(this->num_hours);
+  this->last_modified = "";
+  this->symbol_code_next_1h = "";
+  this->symbol_code_next_12h = "";
+  this->symbol_code_next_6h = "";
+  this->utc_offset = 0;
+  this->daylight_saving = false;
+  this->expired_time->tm_year = 0; // Years since 1900
+  this->expired_time->tm_mon = 0;  // Months since January (0-11)
+  this->expired_time->tm_mday = 0; // Day of the month
+  this->expired_time->tm_hour = 0;
+  this->expired_time->tm_min = 0;
+  this->expired_time->tm_sec = 0;
+}
+Weather::Weather(float latitude, float longitude, uint16_t altitude)
+{
+  this->num_hours = ESPWeatherNumHours;
   this->user_agent = ESPWeatherUserAgent;
   this->longitude = longitude;
   this->latitude = latitude;
@@ -87,6 +125,42 @@ Weather::Weather(double latitude, double longitude, uint16_t altitude)
   this->symbol_code_next_6h = "";
   this->daylight_saving = false;
   this->utc_offset = 0;
+  this->expired_time->tm_year = 0; // Years since 1900
+  this->expired_time->tm_mon = 0;  // Months since January (0-11)
+  this->expired_time->tm_mday = 0; // Day of the month
+  this->expired_time->tm_hour = 0;
+  this->expired_time->tm_min = 0;
+  this->expired_time->tm_sec = 0;
+}
+Weather::Weather(uint8_t num_hours, float latitude, float longitude, uint16_t altitude)
+{
+  this->num_hours = num_hours;
+  this->user_agent = ESPWeatherUserAgent;
+  this->longitude = longitude;
+  this->latitude = latitude;
+  this->altitude = altitude;
+  this->local_time = new tm;
+  this->expired_time = new tm;
+  this->temperature = new WeatherData(this->num_hours);
+  this->dew_point = new WeatherData(this->num_hours);
+  this->precipitation = new WeatherData(this->num_hours);
+  this->wind_speeds = new WeatherData(this->num_hours);
+  this->wind_direction = new WeatherData(this->num_hours);
+  this->air_pressure = new WeatherData(this->num_hours);
+  this->cloudiness = new WeatherData(this->num_hours);
+  this->relative_humidity = new WeatherData(this->num_hours);
+  this->last_modified = "";
+  this->symbol_code_next_1h = "";
+  this->symbol_code_next_12h = "";
+  this->symbol_code_next_6h = "";
+  this->daylight_saving = false;
+  this->utc_offset = 0;
+  this->expired_time->tm_year = 0; // Years since 1900
+  this->expired_time->tm_mon = 0;  // Months since January (0-11)
+  this->expired_time->tm_mday = 0; // Day of the month
+  this->expired_time->tm_hour = 0;
+  this->expired_time->tm_min = 0;
+  this->expired_time->tm_sec = 0;
 }
 
 void Weather::set_daylight_saving(bool daylight_saving)
@@ -113,12 +187,12 @@ Weather::~Weather()
   delete this->relative_humidity;
 }
 
-void Weather::update_location(double latitude, double longitude)
+void Weather::update_location(float latitude, float longitude)
 {
   this->longitude = longitude;
   this->latitude = latitude;
 }
-void Weather::update_location(double latitude, double longitude,
+void Weather::update_location(float latitude, float longitude,
                               uint16_t altitude)
 {
   this->longitude = longitude;
@@ -225,8 +299,7 @@ void Weather::update_data(void)
   }
 
   JsonDocument doc;
-  DeserializationError error = deserializeJson(
-      doc, https.getStream(), DeserializationOption::Filter(filter));
+  DeserializationError error = deserializeJson(doc, https.getStream(), DeserializationOption::Filter(filter));
 
 #ifdef DEBUG_WEATHER
   Serial.println("Starting deserialization");
@@ -249,14 +322,14 @@ void Weather::update_data(void)
     return;
   }
   JsonArray timeseries = doc["properties"]["timeseries"];
-  double *temps = new double[this->num_hours + 1];
-  double *precipitation = new double[this->num_hours + 1];
-  double *wind_speeds = new double[this->num_hours + 1];
-  double *wind_directions = new double[this->num_hours + 1];
-  double *air_pressure = new double[this->num_hours + 1];
-  double *cloudiness = new double[this->num_hours + 1];
-  double *relative_humidity = new double[this->num_hours + 1];
-  double *dew_point = new double[this->num_hours + 1];
+  float *temps = new float[this->num_hours + 1];
+  float *precipitation = new float[this->num_hours + 1];
+  float *wind_speeds = new float[this->num_hours + 1];
+  float *wind_directions = new float[this->num_hours + 1];
+  float *air_pressure = new float[this->num_hours + 1];
+  float *cloudiness = new float[this->num_hours + 1];
+  float *relative_humidity = new float[this->num_hours + 1];
+  float *dew_point = new float[this->num_hours + 1];
   JsonObject current_timeseries_data;
   JsonObject current_timeseries_details;
   JsonObject current_timeseries_next_hour_details;

@@ -6,7 +6,7 @@
 #include "weather_defines.hpp"
 
 #ifndef ESPWeatherRFPFactorTemperature
-#define ESPWeatherRFPFactorTemperature 1000.0f
+#define ESPWeatherRFPFactorTemperature 500.0f
 #endif
 #ifndef ESPWeatherRFPFactorPrecipitation
 #define ESPWeatherRFPFactorPrecipitation 1000.0f
@@ -21,13 +21,13 @@
 #define ESPWeatherRFPFactorAirPressure 10.0f
 #endif
 #ifndef ESPWeatherRFPFactorCloudiness
-#define ESPWeatherRFPFactorCloudiness 1000.0f
+#define ESPWeatherRFPFactorCloudiness 500.0f
 #endif
 #ifndef ESPWeatherRFPFactorRelativeHumidity
-#define ESPWeatherRFPFactorRelativeHumidity 1000.0f
+#define ESPWeatherRFPFactorRelativeHumidity 500.0f
 #endif
 #ifndef ESPWeatherRFPFactorDewPoint
-#define ESPWeatherRFPFactorDewPoint 1000.0f
+#define ESPWeatherRFPFactorDewPoint 500.0f
 #endif
 
 // Weather Class with Reduced FootPrint (RFP)

@@ -24,6 +24,8 @@ public:
   float get_std();
   float get_variance();
   float get_val_at_hour(uint8_t hour);
+  int8_t get_val_at_hour_raw(uint8_t hour);
   float get_current();
+  int8_t get_current_raw();
 };
 #endif

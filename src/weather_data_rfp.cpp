@@ -42,6 +42,11 @@ float WeatherDataRFP::get_val_at_hour(uint8_t hour)
   return static_cast<float>(this->vals[hour]) / this->factor;
 }
 
+float WeatherDataRFP::get_val_at_hour_raw(uint8_t hour)
+{
+  return this->vals[hour];
+}
+
 WeatherDataRFP::~WeatherData()
 {
   delete[] this->vals;
@@ -87,4 +92,8 @@ void WeatherDataRFP::update_vals(float *vals)
 float WeatherDataRFP::get_current()
 {
   return static_cast<float>(this->vals[0]) / this->factor;
+}
+float WeatherDataRFP::get_current_raw()
+{
+  return this->vals[0];
 }

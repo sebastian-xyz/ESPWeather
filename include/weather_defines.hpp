@@ -1,4 +1,4 @@
-#ifdef WEATHER_DEFINES_HPP
+#ifndef WEATHER_DEFINES_HPP
 #define WEATHER_DEFINES_HPP
 
 #ifndef ESPWeatherNumHours

@@ -14,6 +14,37 @@ lib_deps =
     https://github.com/sebastian-xyz/ESPWeather.git
 ```
 
+---
+
+## About the Reduced FootPrint (RFP) Classes
+
+**ESPWeather** provides two main class variants for weather data:
+
+- **Standard classes:** `Weather`, `WeatherData`  
+  These use `float` arrays for storing weather data and are suitable for most ESP32 applications.
+
+- **Reduced FootPrint (RFP) classes:** `WeatherRFP`, `WeatherDataRFP`  
+  These are designed for environments with limited memory.  
+  - Data is stored in `int16_t` arrays and scaled by a `factor` (see the `ESPWeatherRFPFactor*` defines in the code).
+  - The RFP classes use the same API as the standard classes, so you can switch between them with minimal code changes.
+  - To use the RFP classes, include `weather_rfp.hpp` instead of the standard headers and replace `Weather` with `WeatherRFP.
+
+**RFP Defines and Default Values:**
+
+| Define                                 | Default Value | Description                              |
+|-----------------------------------------|--------------|------------------------------------------|
+| `ESPWeatherRFPFactorTemperature`        | 1000.0f      | Temperature (°C × 1000)                  |
+| `ESPWeatherRFPFactorDewPoint`           | 1000.0f      | Dew point (°C × 1000)                    |
+| `ESPWeatherRFPFactorPrecipitation`      | 1000.0f      | Precipitation (mm × 1000)                |
+| `ESPWeatherRFPFactorWindSpeed`          | 100.0f       | Wind speed (m/s × 100)                   |
+| `ESPWeatherRFPFactorWindDirection`      | 100.0f       | Wind direction (degrees × 100)           |
+| `ESPWeatherRFPFactorAirPressure`        | 10.0f        | Air pressure (hPa × 10)                  |
+| `ESPWeatherRFPFactorCloudiness`         | 1000.0f      | Cloudiness (% × 1000)                    |
+| `ESPWeatherRFPFactorRelativeHumidity`   | 1000.0f      | Relative humidity (% × 1000)             |
+
+These defines set the scaling factors for each weather parameter, allowing the library to store values as scaled integers and save RAM. For example, a temperature of 23.456°C is stored as `23456` when using a factor of 1000.
+
+---
 
 Example sketch:
 ```cpp

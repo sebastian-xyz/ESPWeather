@@ -2,14 +2,8 @@
 #define WEATHER_HPP
 
 #include <Arduino.h>
+#include "weather_defines.hpp"
 #include "weather_data.hpp"
-
-#ifndef ESPWeatherNumHours
-#define ESPWeatherNumHours 24
-#endif
-#ifndef ESPWeatherUserAgent
-#define ESPWeatherUserAgent "github.com/sebastian-xyz/ESPWeather/v1.1"
-#endif
 
 class Weather
 {

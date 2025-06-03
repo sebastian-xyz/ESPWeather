@@ -44,7 +44,7 @@ lib_deps =
 
 These defines set the scaling factors for each weather parameter, allowing the library to store values as scaled integers and save RAM. For example, a temperature of 23.456°C is stored as `23456` when using a factor of 1000.
 
-> [!Tip] **How to change the scaling factors:**  
+> **How to change the scaling factors:**  
 > To override any of these default values, simply `#define` the desired value **before** including `weather_rfp.hpp` in your code.  
 > For example:
 > ```cpp

@@ -40,8 +40,8 @@ lib_deps =
 | `ESPWeatherRFPFactorWindSpeed`          | 100.0f       | Wind speed (m/s × 100)                   |
 | `ESPWeatherRFPFactorWindDirection`      | 100.0f       | Wind direction (degrees × 100)           |
 | `ESPWeatherRFPFactorAirPressure`        | 10.0f        | Air pressure (hPa × 10)                  |
-| `ESPWeatherRFPFactorCloudiness`         | 500.0f      | Cloudiness (% × 500)                    |
-| `ESPWeatherRFPFactorRelativeHumidity`   | 500.0f      | Relative humidity (% × 500)             |
+| `ESPWeatherRFPFactorCloudiness`         | 100.0f      | Cloudiness (% × 100)                    |
+| `ESPWeatherRFPFactorRelativeHumidity`   | 100.0f      | Relative humidity (% × 100)             |
 
 These defines set the scaling factors for each weather parameter, allowing the library to store values as scaled integers and save RAM. For example, a temperature of 23.456°C is stored as `11728` when using a factor of 500.
 

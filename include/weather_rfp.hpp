@@ -21,10 +21,10 @@
 #define ESPWeatherRFPFactorAirPressure 10.0f
 #endif
 #ifndef ESPWeatherRFPFactorCloudiness
-#define ESPWeatherRFPFactorCloudiness 500.0f
+#define ESPWeatherRFPFactorCloudiness 100.0f
 #endif
 #ifndef ESPWeatherRFPFactorRelativeHumidity
-#define ESPWeatherRFPFactorRelativeHumidity 500.0f
+#define ESPWeatherRFPFactorRelativeHumidity 100.0f
 #endif
 #ifndef ESPWeatherRFPFactorDewPoint
 #define ESPWeatherRFPFactorDewPoint 500.0f

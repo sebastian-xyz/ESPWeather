@@ -44,7 +44,7 @@ private:
   uint16_t altitude;
   int8_t utc_offset;
   const char *url = "https://api.met.no/weatherapi/locationforecast/2.0/complete";
-  const uint8_t num_hours;
+  uint8_t num_hours;
   WeatherDataRFP *dew_point;
   WeatherDataRFP *temperature;
   WeatherDataRFP *precipitation;
@@ -63,7 +63,6 @@ public:
   WeatherRFP(float latitude, float longitude, uint16_t altitude);
   WeatherRFP(uint8_t num_hours, float latitude, float longitude);
   WeatherRFP(uint8_t num_hours, float latitude, float longitude, uint16_t altitude);
-  WeatherRFP(float latitude, float longitude, uint16_t altitude);
   ~WeatherRFP();
   bool is_expired(void);
   void update_data(void);
@@ -79,6 +78,7 @@ public:
   WeatherDataRFP *get_cloudiness();
   WeatherDataRFP *get_relative_humidity();
   WeatherDataRFP *get_dew_point();
+  uint8_t get_num_hours();
   tm *getExpiredTime();
   String get_symbol_code_next_1h();
   String get_symbol_code_next_6h();

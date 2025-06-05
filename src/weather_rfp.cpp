@@ -523,6 +523,7 @@ WeatherDataRFP *WeatherRFP::get_cloudiness() { return this->cloudiness; }
 WeatherDataRFP *WeatherRFP::get_dew_point() { return this->dew_point; }
 
 tm *WeatherRFP::getExpiredTime() { return this->expired_time; }
+uint8_t WeatherRFP::get_num_hours() { return this->num_hours; }
 String WeatherRFP::get_symbol_code_next_1h() { return this->symbol_code_next_1h; }
 String WeatherRFP::get_symbol_code_next_12h()
 {

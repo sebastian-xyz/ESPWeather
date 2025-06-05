@@ -14,9 +14,8 @@ private:
   uint8_t num_hours;
 
 public:
-  WeatherData(uint8_t num_hours, float factor);
-  WeatherData(float *vals, float factor);
-  ~WeatherData();
+  WeatherDataRFP(uint8_t num_hours, float factor);
+  ~WeatherDataRFP();
   void update_vals(float *vals);
   float get_minimum();
   float get_maximum();
@@ -24,8 +23,9 @@ public:
   float get_std();
   float get_variance();
   float get_val_at_hour(uint8_t hour);
-  int8_t get_val_at_hour_raw(uint8_t hour);
+  int16_t get_val_at_hour_raw(uint8_t hour);
   float get_current();
-  int8_t get_current_raw();
+  int16_t get_current_raw();
+  float get_factor();
 };
 #endif

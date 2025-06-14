@@ -508,25 +508,17 @@ bool WeatherRFP::is_expired(void)
 WeatherDataRFP *WeatherRFP::get_temperature() { return this->temperature; }
 WeatherDataRFP *WeatherRFP::get_precipitation() { return this->precipitation; }
 WeatherDataRFP *WeatherRFP::get_air_pressure() { return this->air_pressure; }
-
-WeatherDataRFP *WeatherRFP::get_relative_humidity()
-{
-  return this->relative_humidity;
-}
-
+WeatherDataRFP *WeatherRFP::get_relative_humidity() { return this->relative_humidity; }
 WeatherDataRFP *WeatherRFP::get_wind_speeds() { return this->wind_speeds; }
-
 WeatherDataRFP *WeatherRFP::get_wind_direction() { return this->wind_direction; }
-
 WeatherDataRFP *WeatherRFP::get_cloudiness() { return this->cloudiness; }
-
 WeatherDataRFP *WeatherRFP::get_dew_point() { return this->dew_point; }
-
+void WeatherRFP::setExpiredTime(tm *time) { this->expired_time = time; }
 tm *WeatherRFP::getExpiredTime() { return this->expired_time; }
 uint8_t WeatherRFP::get_num_hours() { return this->num_hours; }
+void WeatherRFP::set_symbol_code_next_1h(String symbol) { this->symbol_code_next_1h = symbol; }
+void WeatherRFP::set_symbol_code_next_6h(String symbol) { this->symbol_code_next_6h = symbol; }
+void WeatherRFP::set_symbol_code_next_12h(String symbol) { this->symbol_code_next_12h = symbol; }
 String WeatherRFP::get_symbol_code_next_1h() { return this->symbol_code_next_1h; }
-String WeatherRFP::get_symbol_code_next_12h()
-{
-  return this->symbol_code_next_12h;
-}
 String WeatherRFP::get_symbol_code_next_6h() { return this->symbol_code_next_6h; }
+String WeatherRFP::get_symbol_code_next_12h() { return this->symbol_code_next_12h; }

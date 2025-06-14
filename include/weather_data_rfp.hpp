@@ -17,6 +17,7 @@ public:
   WeatherDataRFP(uint8_t num_hours, float factor);
   ~WeatherDataRFP();
   void update_vals(float *vals);
+  void update_vals(int16_t *vals);
   float get_minimum();
   float get_maximum();
   float get_mean();

@@ -15,7 +15,7 @@
 #define ESPWeatherRFPFactorWindSpeed 100.0f
 #endif
 #ifndef ESPWeatherRFPFactorWindDirection
-#define ESPWeatherRFPFactorWindDirection 100.0f
+#define ESPWeatherRFPFactorWindDirection 50.0f
 #endif
 #ifndef ESPWeatherRFPFactorAirPressure
 #define ESPWeatherRFPFactorAirPressure 10.0f
@@ -80,6 +80,10 @@ public:
   WeatherDataRFP *get_dew_point();
   uint8_t get_num_hours();
   tm *getExpiredTime();
+  void setExpiredTime(tm *time);
+  void set_symbol_code_next_1h(String symbol);
+  void set_symbol_code_next_6h(String symbol);
+  void set_symbol_code_next_12h(String symbol);
   String get_symbol_code_next_1h();
   String get_symbol_code_next_6h();
   String get_symbol_code_next_12h();

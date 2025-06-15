@@ -89,6 +89,43 @@ void WeatherDataRFP::update_vals(float *vals)
   }
 }
 
+void WeatherDataRFP::update_vals(int16_t *vals)
+{
+  int16_t mean = 0;
+  int16_t minimum = vals[0];
+  int16_t maximum = vals[0];
+  for (uint8_t i = 0; i < this->num_hours + 1; ++i)
+  {
+    this->vals[i] = vals[i];
+    if (i > 0)
+    {
+      mean += vals[i];
+      if (vals[i] < minimum)
+      {
+        minimum = vals[i];
+      }
+      if (vals[i] > maximum)
+      {
+        maximum = vals[i];
+      }
+    }
+  }
+  this->mean = mean / this->num_hours;
+  this->maxmimum = maximum * this->factor;
+  this->minimum = minimum * this->factor;
+  if (this->num_hours > 1)
+  {
+    int16_t var = 0;
+    for (int i = 1; i < this->num_hours + 1; ++i)
+    {
+      var += pow(vals[i] - this->mean, 2);
+    }
+
+    var /= (this->num_hours - 1);
+    this->variance = var;
+  }
+}
+
 float WeatherDataRFP::get_current()
 {
   return static_cast<float>(this->vals[0]) / this->factor;

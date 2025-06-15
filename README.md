@@ -151,9 +151,9 @@ The `Weather` class provides an interface to retrieve and manage weather data fr
 | **WeatherData\***       | _get_dew_point()_                           | Returns a pointer to dew point data.                               |
 | **void**                | _setExpiredTime(tm *time)_                  | Sets a pointer to the expiration time structure.                   |
 | **tm\***                | _getExpiredTime()_                          | Returns a pointer to the expiration time structure.                |
-| **void**                | _set_symbol_code_next_1h(String symbol)     | Sets a stored symbol code for the next 1 hour.                     |
-| **void**                | _set_symbol_code_next_6h(String symbol)     | Sets a stored symbol code for the next 6 hour.                     |
-| **void**                | _set_symbol_code_next_12h(String symbol)    | Sets a stored symbol code for the next 12 hours.                   |
+| **void**                | _set_symbol_code_next_1h(String symbol)_    | Sets a stored symbol code for the next 1 hour.                     |
+| **void**                | _set_symbol_code_next_6h(String symbol)_    | Sets a stored symbol code for the next 6 hour.                     |
+| **void**                | _set_symbol_code_next_12h(String symbol)_   | Sets a stored symbol code for the next 12 hours.                   |
 | **String**              | _get_symbol_code_next_1h()_                 | Returns the symbol code for the next 1 hour.                       |
 | **String**              | _get_symbol_code_next_6h()_                 | Returns the symbol code for the next 6 hours.                      |
 | **String**              | _get_symbol_code_next_12h()_                | Returns the symbol code for the next 12 hours.                     |

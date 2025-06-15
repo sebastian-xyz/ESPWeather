@@ -38,7 +38,7 @@ lib_deps =
 | `ESPWeatherRFPFactorDewPoint`           | 500.0f      | Dew point (°C × 500)                    |
 | `ESPWeatherRFPFactorPrecipitation`      | 1000.0f      | Precipitation (mm × 1000)                |
 | `ESPWeatherRFPFactorWindSpeed`          | 100.0f       | Wind speed (m/s × 100)                   |
-| `ESPWeatherRFPFactorWindDirection`      | 100.0f       | Wind direction (degrees × 100)           |
+| `ESPWeatherRFPFactorWindDirection`      | 50.0f       | Wind direction (degrees × 100)           |
 | `ESPWeatherRFPFactorAirPressure`        | 10.0f        | Air pressure (hPa × 10)                  |
 | `ESPWeatherRFPFactorCloudiness`         | 100.0f      | Cloudiness (% × 100)                    |
 | `ESPWeatherRFPFactorRelativeHumidity`   | 100.0f      | Relative humidity (% × 100)             |
@@ -149,7 +149,11 @@ The `Weather` class provides an interface to retrieve and manage weather data fr
 | **WeatherData\***       | _get_cloudiness()_                          | Returns a pointer to cloudiness data.                              |
 | **WeatherData\***       | _get_relative_humidity()_                   | Returns a pointer to relative humidity data.                       |
 | **WeatherData\***       | _get_dew_point()_                           | Returns a pointer to dew point data.                               |
+| **void**                | _setExpiredTime(tm *time)_                  | Sets a pointer to the expiration time structure.                   |
 | **tm\***                | _getExpiredTime()_                          | Returns a pointer to the expiration time structure.                |
+| **void**                | _set_symbol_code_next_1h(String symbol)_    | Sets a stored symbol code for the next 1 hour.                     |
+| **void**                | _set_symbol_code_next_6h(String symbol)_    | Sets a stored symbol code for the next 6 hour.                     |
+| **void**                | _set_symbol_code_next_12h(String symbol)_   | Sets a stored symbol code for the next 12 hours.                   |
 | **String**              | _get_symbol_code_next_1h()_                 | Returns the symbol code for the next 1 hour.                       |
 | **String**              | _get_symbol_code_next_6h()_                 | Returns the symbol code for the next 6 hours.                      |
 | **String**              | _get_symbol_code_next_12h()_                | Returns the symbol code for the next 12 hours.                     |
@@ -163,19 +167,22 @@ The `WeatherData` class represents weather parameter data for a set of hours, pr
 
 #### Public Methods
 
-| **Return Type** | _Function_                              | Description                                                  |
-|-----------------|-----------------------------------------|--------------------------------------------------------------|
+| **Return Type** | _Function_                              | Description                                                   |
+|-----------------|-----------------------------------------|---------------------------------------------------------------|
 |                 | _WeatherData(uint8_t num_hours)_        | Constructor that initializes with the number of hours.        |
 |                 | _WeatherData(float *vals)_              | Constructor that initializes with a pointer to values array.  |
-|                 | _~WeatherData()_                        | Destructor.                                                  |
+|                 | _~WeatherData()_                        | Destructor.                                                   |
 | **void**        | _update_vals(float *vals)_              | Updates the internal values array.                            |
+| **void**        | _update_vals(int16_t *vals)_            | Updates the internal values array.                            |
 | **float**       | _get_minimum()_                         | Returns the minimum value.                                    |
 | **float**       | _get_maximum()_                         | Returns the maximum value.                                    |
 | **float**       | _get_mean()_                            | Returns the mean value.                                       |
 | **float**       | _get_std()_                             | Returns the standard deviation.                               |
 | **float**       | _get_variance()_                        | Returns the variance.                                         |
 | **float**       | _get_val_at_hour(uint8_t hour)_         | Returns the value at the specified hour.                      |
+| **int16_t**     | _get_val_at_hour_raw(uint8_t hour)_     | Returns the value at the specified hour.                      |
 | **float**       | _get_current()_                         | Returns the value for the current hour.                       |
+| **int16_t**     | _get_current_raw()_                     | Returns the value for the current hour.                       |
 
 > **Note:**  
 > The WeatherData class does not expose public data members; all access is through its public methods.

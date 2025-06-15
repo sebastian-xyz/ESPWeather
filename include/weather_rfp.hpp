@@ -15,7 +15,7 @@
 #define ESPWeatherRFPFactorWindSpeed 100.0f
 #endif
 #ifndef ESPWeatherRFPFactorWindDirection
-#define ESPWeatherRFPFactorWindDirection 100.0f
+#define ESPWeatherRFPFactorWindDirection 50.0f
 #endif
 #ifndef ESPWeatherRFPFactorAirPressure
 #define ESPWeatherRFPFactorAirPressure 10.0f

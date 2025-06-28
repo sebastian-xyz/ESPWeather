@@ -280,6 +280,9 @@ bool WeatherRFP::update_data(fs::FS &fs)
   }
 
 #if HAS_SPI_RAM_WEATHERRFP
+  SpiRamAllocator allocator;
+  JsonDocument doc(&allocator);
+#else
   JsonDocument doc;
 #endif
   File file = fs.open(scratch_file, FILE_WRITE);

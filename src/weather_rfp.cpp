@@ -200,7 +200,7 @@ void WeatherRFP::update_location(float latitude, float longitude,
   this->altitude = altitude;
 }
 
-void WeatherRFP::update_data(void)
+bool WeatherRFP::update_data(fs::FS &fs)
 {
   std::unique_ptr<WiFiClientSecure> client(new WiFiClientSecure);
   std::unique_ptr<char[]> buffer(new char[512]);
@@ -299,11 +299,32 @@ void WeatherRFP::update_data(void)
   }
 
   JsonDocument doc;
-  DeserializationError error = deserializeJson(doc, https.getStream(), DeserializationOption::Filter(filter));
+#endif
+  File file = fs.open(scratch_file, FILE_WRITE);
+  https.writeToStream(&file);
+  file.close();
+  file = fs.open(scratch_file);
+  if(!file || file.isDirectory()){
+#if DEBUG_WEATHER
+      Serial.println("- failed to open file for reading");
+#endif
+      return false;
+  }
 
 #ifdef DEBUG_WEATHER
   Serial.println("Starting deserialization");
 #endif
+  DeserializationError error = deserializeJson(doc, file, DeserializationOption::Filter(filter));
+  // while(file.available()){
+  //     Serial.write(file.read());
+  // }
+  file.close();
+#if DEBUG_WEATHER
+  Serial.println("- done!");
+#endif
+  // ReadLoggingStream loggingStream(https.getStream(), Serial);
+  // DeserializationError error = deserializeJson(doc, loggingStream, DeserializationOption::Filter(filter));
+
   if (error)
   {
 

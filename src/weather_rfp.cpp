@@ -1,5 +1,6 @@
 #include "math.h"
 #include <ArduinoJson.h>
+#include <StreamUtils.h>
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <memory>
@@ -206,8 +207,7 @@ bool WeatherRFP::update_data(fs::FS &fs)
   std::unique_ptr<char[]> buffer(new char[512]);
   client->setCACert(root_cert);
   HTTPClient https;
-  sprintf(buffer.get(), "?lat=%.2f&lon=%.2f&altitude=%d", this->latitude,
-          this->longitude, this->altitude);
+  sprintf(buffer.get(), "?lat=%.2f&lon=%.2f&altitude=%d", this->latitude, this->longitude, this->altitude);
   String url = (String)this->url + (String)buffer.get();
   https.begin(*client, url.c_str());
   https.setUserAgent(this->user_agent);
@@ -251,14 +251,14 @@ bool WeatherRFP::update_data(fs::FS &fs)
   String payload = "{}";
   if (httpResponseCode > 0)
   {
-#ifdef DEBUG_WEATHER
+#if DEBUG_WEATHER
     Serial.print("HTTP Response code: ");
     Serial.println(httpResponseCode);
 #endif
     if ((!this->last_modified.isEmpty()) && httpResponseCode == 304)
     {
       int header_collected = https.headers();
-#ifdef DEBUG_WEATHER
+#if DEBUG_WEATHER
       Serial.println("Data unchanged. Nothing todo");
       Serial.print("Collected ");
       Serial.print(header_collected);
@@ -269,9 +269,8 @@ bool WeatherRFP::update_data(fs::FS &fs)
         this->last_modified = https.header("last-modified");
         String expires = https.header("expires");
         const char *expires_c = expires.c_str();
-        char *end = strptime(expires_c, "%a, %d %b %Y %H:%M:%S GMT",
-                             this->expired_time);
 #ifdef DEBUG_WEATHER
+        char *end = strptime(expires_c, "%a, %d %b %Y %H:%M:%S GMT", this->expired_time);
         if ((end == NULL) || end != "\0")
         {
           Serial.print("Found remaining char: ");
@@ -282,7 +281,6 @@ bool WeatherRFP::update_data(fs::FS &fs)
 
         Serial.print("last-modified: ");
         Serial.println(this->last_modified);
-
         Serial.print("expires: ");
         Serial.println(expires);
 #endif
@@ -397,12 +395,9 @@ bool WeatherRFP::update_data(fs::FS &fs)
   {
     current_timeseries_data = timeseries[i]["data"];
     current_timeseries_details = current_timeseries_data["instant"]["details"];
-    current_timeseries_next_hour_details =
-        current_timeseries_data["next_1_hours"]["details"];
-
+    current_timeseries_next_hour_details = current_timeseries_data["next_1_hours"]["details"];
     temps[i] = current_timeseries_details["air_temperature"];
-    precipitation[i] =
-        current_timeseries_next_hour_details["precipitation_amount"];
+    precipitation[i] = current_timeseries_next_hour_details["precipitation_amount"];
     wind_speeds[i] = current_timeseries_details["wind_speed"];
     wind_directions[i] = current_timeseries_details["wind_from_direction"];
     air_pressure[i] = current_timeseries_details["air_pressure_at_sea_level"];
@@ -410,7 +405,6 @@ bool WeatherRFP::update_data(fs::FS &fs)
     relative_humidity[i] = current_timeseries_details["relative_humidity"];
     dew_point[i] = current_timeseries_details["dew_point_temperature"];
   }
-  // Free resources
   this->temperature->update_vals(temps);
   this->precipitation->update_vals(precipitation);
   this->wind_speeds->update_vals(wind_speeds);
@@ -439,18 +433,15 @@ bool WeatherRFP::update_data(fs::FS &fs)
       Serial.println(end);
     }
 #endif
-
 #ifdef DEBUG_WEATHER
     Serial.print("last-modified: ");
     Serial.println(this->last_modified);
-
     Serial.print("expires: ");
     Serial.println(expires);
-    Serial.println(this->expired_time->tm_hour);
-    Serial.println(this->expired_time->tm_min);
 #endif
   }
   https.end();
+  // Free resources
   delete[] temps;
   delete[] precipitation;
   delete[] wind_speeds;
@@ -459,6 +450,8 @@ bool WeatherRFP::update_data(fs::FS &fs)
   delete[] cloudiness;
   delete[] relative_humidity;
   delete[] dew_point;
+  fs.remove(scratch_file);
+  return true;
 }
 
 bool is_leap_year(int year)

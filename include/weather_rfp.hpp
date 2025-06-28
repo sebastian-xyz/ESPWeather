@@ -33,6 +33,9 @@
 #define ESPWeatherRFPFactorDewPoint 500.0f
 #endif
 
+#ifndef DEBUG_WEATHER
+#define DEBUG_WEATHER 1
+#endif
 #ifndef HAS_SPI_RAM_WEATHERRFP
 #define HAS_SPI_RAM_WEATHERRFP 1
 #endif

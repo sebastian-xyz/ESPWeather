@@ -265,7 +265,7 @@ bool WeatherRFP::update_data(fs::FS &fs)
         Serial.println(expires);
 #endif
       }
-      return;
+      return true;
     }
   }
   else
@@ -313,14 +313,14 @@ bool WeatherRFP::update_data(fs::FS &fs)
     Serial.print("DeserializeJson() failed - error msg: ");
     Serial.println(error.c_str());
 #endif
-    return;
+    return false;
   }
   if (!(doc["properties"]["timeseries"].is<JsonArray>()))
   {
-    return;
 #if DEBUG_WEATHER
     Serial.println("JsonArray properties.timeseries not found in JSON document");
 #endif
+    return false;
   }
   JsonArray timeseries = doc["properties"]["timeseries"];
   float *temps = new float[this->num_hours + 1];

@@ -252,16 +252,13 @@ bool WeatherRFP::update_data(fs::FS &fs)
         this->last_modified = https.header("last-modified");
         String expires = https.header("expires");
         const char *expires_c = expires.c_str();
-#ifdef DEBUG_WEATHER
         char *end = strptime(expires_c, "%a, %d %b %Y %H:%M:%S GMT", this->expired_time);
+#if DEBUG_WEATHER
         if ((end == NULL) || end != "\0")
         {
           Serial.print("Found remaining char: ");
           Serial.println(end);
         }
-#endif
-#ifdef DEBUG_WEATHER
-
         Serial.print("last-modified: ");
         Serial.println(this->last_modified);
         Serial.print("expires: ");
@@ -273,7 +270,7 @@ bool WeatherRFP::update_data(fs::FS &fs)
   }
   else
   {
-#ifdef DEBUG_WEATHER
+#if DEBUG_WEATHER
     Serial.print("Error code: ");
     Serial.println(httpResponseCode);
 #endif
@@ -296,8 +293,8 @@ bool WeatherRFP::update_data(fs::FS &fs)
       return false;
   }
 
-#ifdef DEBUG_WEATHER
-  Serial.println("Starting deserialization");
+#if DEBUG_WEATHER
+  Serial.print("Deserializing weather data from file ...");
 #endif
   DeserializationError error = deserializeJson(doc, file, DeserializationOption::Filter(filter));
   // while(file.available()){
@@ -312,9 +309,8 @@ bool WeatherRFP::update_data(fs::FS &fs)
 
   if (error)
   {
-
-#ifdef DEBUG_WEATHER
-    Serial.print("deserializeJson() failed: ");
+#if DEBUG_WEATHER
+    Serial.print("DeserializeJson() failed - error msg: ");
     Serial.println(error.c_str());
 #endif
     return;
@@ -322,6 +318,9 @@ bool WeatherRFP::update_data(fs::FS &fs)
   if (!(doc["properties"]["timeseries"].is<JsonArray>()))
   {
     return;
+#if DEBUG_WEATHER
+    Serial.println("JsonArray properties.timeseries not found in JSON document");
+#endif
   }
   JsonArray timeseries = doc["properties"]["timeseries"];
   float *temps = new float[this->num_hours + 1];
@@ -368,7 +367,7 @@ bool WeatherRFP::update_data(fs::FS &fs)
   this->relative_humidity->update_vals(relative_humidity);
   this->dew_point->update_vals(dew_point);
   int header_collected = https.headers();
-#ifdef DEBUG_WEATHER
+#if DEBUG_WEATHER
   Serial.print("Collected ");
   Serial.print(header_collected);
   Serial.println(" headers:");
@@ -380,14 +379,12 @@ bool WeatherRFP::update_data(fs::FS &fs)
     const char *expires_c = expires.c_str();
     char *end =
         strptime(expires_c, "%a, %d %b %Y %H:%M:%S GMT", this->expired_time);
-#ifdef DEBUG_WEATHER
+#if DEBUG_WEATHER
     if ((end == NULL) || end != "\0")
     {
       Serial.print("Found remaining char: ");
       Serial.println(end);
     }
-#endif
-#ifdef DEBUG_WEATHER
     Serial.print("last-modified: ");
     Serial.println(this->last_modified);
     Serial.print("expires: ");

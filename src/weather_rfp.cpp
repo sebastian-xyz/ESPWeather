@@ -220,35 +220,18 @@ bool WeatherRFP::update_data(fs::FS &fs)
   https.collectHeaders(headerKeys, headerKeysCount);
 
   JsonDocument filter;
-
-  for (uint8_t i = 0; i < this->num_hours + 1; ++i)
-  {
-    filter["properties"]["timeseries"][i] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]
-          ["air_temperature"] = true;
-    filter["properties"]["timeseries"][i]["data"]["next_1_hours"]["details"]
-          ["precipitation_amount"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]
-          ["wind_speed"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]
-          ["wind_from_direction"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]
-          ["air_pressure_at_sea_level"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]
-          ["cloud_area_fraction"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]
-          ["relative_humidity"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]
-          ["dew_point_temperature"] = true;
-    if (i == 0)
-    {
-      filter["properties"]["timeseries"][i]["data"]["next_1_hours"]["summary"]
-            ["symbol_code"] = true;
-    }
-  }
+  filter["properties"]["timeseries"][0] = true;
+  filter["properties"]["timeseries"][0]["data"]["instant"]["details"]["air_temperature"] = true;
+  filter["properties"]["timeseries"][0]["data"]["next_1_hours"]["details"]["precipitation_amount"] = true;
+  filter["properties"]["timeseries"][0]["data"]["instant"]["details"]["wind_speed"] = true;
+  filter["properties"]["timeseries"][0]["data"]["instant"]["details"]["wind_from_direction"] = true;
+  filter["properties"]["timeseries"][0]["data"]["instant"]["details"]["air_pressure_at_sea_level"] = true;
+  filter["properties"]["timeseries"][0]["data"]["instant"]["details"]["cloud_area_fraction"] = true;
+  filter["properties"]["timeseries"][0]["data"]["instant"]["details"]["relative_humidity"] = true;
+  filter["properties"]["timeseries"][0]["data"]["instant"]["details"]["dew_point_temperature"] = true;
+  filter["properties"]["timeseries"][0]["data"]["next_1_hours"]["summary"]["symbol_code"] = true;
 
   int httpResponseCode = https.GET();
-  String payload = "{}";
   if (httpResponseCode > 0)
   {
 #if DEBUG_WEATHER
@@ -296,6 +279,7 @@ bool WeatherRFP::update_data(fs::FS &fs)
 #endif
   }
 
+#if HAS_SPI_RAM_WEATHERRFP
   JsonDocument doc;
 #endif
   File file = fs.open(scratch_file, FILE_WRITE);
@@ -332,11 +316,7 @@ bool WeatherRFP::update_data(fs::FS &fs)
 #endif
     return;
   }
-  if (!(doc.containsKey("properties")))
-  {
-    return;
-  }
-  if (!(doc["properties"].containsKey("timeseries")))
+  if (!(doc["properties"]["timeseries"].is<JsonArray>()))
   {
     return;
   }
@@ -352,45 +332,16 @@ bool WeatherRFP::update_data(fs::FS &fs)
   JsonObject current_timeseries_data;
   JsonObject current_timeseries_details;
   JsonObject current_timeseries_next_hour_details;
-  if (timeseries[0]["data"].containsKey("next_1_hours"))
-  {
-    if (timeseries[0]["data"]["next_1_hours"].containsKey("summary"))
-    {
-      if (timeseries[0]["data"]["next_1_hours"]["summary"].containsKey(
-              "symbol_code"))
-      {
-        this->symbol_code_next_1h =
-            String((const char *)timeseries[0]["data"]["next_1_hours"]
-                                           ["summary"]["symbol_code"]);
-      }
-    }
-  }
-  if (timeseries[0]["data"].containsKey("next_6_hours"))
-  {
-    if (timeseries[0]["data"]["next_6_hours"].containsKey("summary"))
-    {
-      if (timeseries[0]["data"]["next_6_hours"]["summary"].containsKey(
-              "symbol_code"))
-      {
-        this->symbol_code_next_6h =
-            String((const char *)timeseries[0]["data"]["next_6_hours"]
-                                           ["summary"]["symbol_code"]);
-      }
-    }
-  }
-  if (timeseries[0]["data"].containsKey("next_12_hours"))
-  {
-    if (timeseries[0]["data"]["next_12_hours"].containsKey("summary"))
-    {
-      if (timeseries[0]["data"]["next_12_hours"]["summary"].containsKey(
-              "symbol_code"))
-      {
-        this->symbol_code_next_12h =
-            String((const char *)timeseries[0]["data"]["next_12_hours"]
-                                           ["summary"]["symbol_code"]);
-      }
-    }
-  }
+
+  if (timeseries[0]["data"]["next_1_hours"]["summary"]["symbol_code"].is<String>())
+    this->symbol_code_next_1h = String((const char *)timeseries[0]["data"]["next_1_hours"]["summary"]["symbol_code"]);
+
+  if (timeseries[0]["data"]["next_6_hours"]["summary"]["symbol_code"].is<String>())
+    this->symbol_code_next_6h = String((const char *)timeseries[0]["data"]["next_6_hours"]["summary"]["symbol_code"]);
+
+  if (timeseries[0]["data"]["next_12_hours"]["summary"]["symbol_code"].is<String>())
+    this->symbol_code_next_12h = String((const char *)timeseries[0]["data"]["next_12_hours"]["summary"]["symbol_code"]);
+
   for (uint8_t i = 0; i < this->num_hours + 1; ++i)
   {
     current_timeseries_data = timeseries[i]["data"];

@@ -2,6 +2,9 @@
 #define WEATHER_RFP_HPP
 
 #include <Arduino.h>
+#include <ArduinoJson.h>
+#include <FS.h>
+
 #include "weather_data_rfp.hpp"
 #include "weather_defines.hpp"
 
@@ -30,6 +33,13 @@
 #define ESPWeatherRFPFactorDewPoint 500.0f
 #endif
 
+#ifndef DEBUG_WEATHER
+#define DEBUG_WEATHER 1
+#endif
+#ifndef HAS_SPI_RAM_WEATHERRFP
+#define HAS_SPI_RAM_WEATHERRFP 1
+#endif
+
 // Weather Class with Reduced FootPrint (RFP)
 class WeatherRFP
 {
@@ -44,6 +54,7 @@ private:
   uint16_t altitude;
   int8_t utc_offset;
   const char *url = "https://api.met.no/weatherapi/locationforecast/2.0/complete";
+  const char *scratch_file = "/weather_rfp.json";
   uint8_t num_hours;
   WeatherDataRFP *dew_point;
   WeatherDataRFP *temperature;
@@ -65,7 +76,7 @@ public:
   WeatherRFP(uint8_t num_hours, float latitude, float longitude, uint16_t altitude);
   ~WeatherRFP();
   bool is_expired(void);
-  void update_data(void);
+  bool update_data(fs::FS &fs);
   void update_location(float latitude, float longitude);
   void update_location(float latitude, float longitude, uint16_t altitude);
   void set_utc_offset(int8_t utf_offset);
@@ -88,5 +99,21 @@ public:
   String get_symbol_code_next_6h();
   String get_symbol_code_next_12h();
 };
+
+#if HAS_SPI_RAM_WEATHERRFP
+struct SpiRamAllocator : ArduinoJson::Allocator {
+  void* allocate(size_t size) override {
+    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+  }
+
+  void deallocate(void* pointer) override {
+    heap_caps_free(pointer);
+  }
+
+  void* reallocate(void* ptr, size_t new_size) override {
+    return heap_caps_realloc(ptr, new_size, MALLOC_CAP_SPIRAM);
+  }
+};
+#endif
 
 #endif

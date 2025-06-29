@@ -1,5 +1,6 @@
 #include "math.h"
 #include <ArduinoJson.h>
+#include <StreamUtils.h>
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <memory>
@@ -200,14 +201,13 @@ void WeatherRFP::update_location(float latitude, float longitude,
   this->altitude = altitude;
 }
 
-void WeatherRFP::update_data(void)
+bool WeatherRFP::update_data(fs::FS &fs)
 {
   std::unique_ptr<WiFiClientSecure> client(new WiFiClientSecure);
   std::unique_ptr<char[]> buffer(new char[512]);
   client->setCACert(root_cert);
   HTTPClient https;
-  sprintf(buffer.get(), "?lat=%.2f&lon=%.2f&altitude=%d", this->latitude,
-          this->longitude, this->altitude);
+  sprintf(buffer.get(), "?lat=%.2f&lon=%.2f&altitude=%d", this->latitude, this->longitude, this->altitude);
   String url = (String)this->url + (String)buffer.get();
   https.begin(*client, url.c_str());
   https.setUserAgent(this->user_agent);
@@ -220,45 +220,28 @@ void WeatherRFP::update_data(void)
   https.collectHeaders(headerKeys, headerKeysCount);
 
   JsonDocument filter;
-
-  for (uint8_t i = 0; i < this->num_hours + 1; ++i)
-  {
-    filter["properties"]["timeseries"][i] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]
-          ["air_temperature"] = true;
-    filter["properties"]["timeseries"][i]["data"]["next_1_hours"]["details"]
-          ["precipitation_amount"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]
-          ["wind_speed"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]
-          ["wind_from_direction"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]
-          ["air_pressure_at_sea_level"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]
-          ["cloud_area_fraction"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]
-          ["relative_humidity"] = true;
-    filter["properties"]["timeseries"][i]["data"]["instant"]["details"]
-          ["dew_point_temperature"] = true;
-    if (i == 0)
-    {
-      filter["properties"]["timeseries"][i]["data"]["next_1_hours"]["summary"]
-            ["symbol_code"] = true;
-    }
-  }
+  filter["properties"]["timeseries"][0] = true;
+  filter["properties"]["timeseries"][0]["data"]["instant"]["details"]["air_temperature"] = true;
+  filter["properties"]["timeseries"][0]["data"]["next_1_hours"]["details"]["precipitation_amount"] = true;
+  filter["properties"]["timeseries"][0]["data"]["instant"]["details"]["wind_speed"] = true;
+  filter["properties"]["timeseries"][0]["data"]["instant"]["details"]["wind_from_direction"] = true;
+  filter["properties"]["timeseries"][0]["data"]["instant"]["details"]["air_pressure_at_sea_level"] = true;
+  filter["properties"]["timeseries"][0]["data"]["instant"]["details"]["cloud_area_fraction"] = true;
+  filter["properties"]["timeseries"][0]["data"]["instant"]["details"]["relative_humidity"] = true;
+  filter["properties"]["timeseries"][0]["data"]["instant"]["details"]["dew_point_temperature"] = true;
+  filter["properties"]["timeseries"][0]["data"]["next_1_hours"]["summary"]["symbol_code"] = true;
 
   int httpResponseCode = https.GET();
-  String payload = "{}";
   if (httpResponseCode > 0)
   {
-#ifdef DEBUG_WEATHER
+#if DEBUG_WEATHER
     Serial.print("HTTP Response code: ");
     Serial.println(httpResponseCode);
 #endif
     if ((!this->last_modified.isEmpty()) && httpResponseCode == 304)
     {
       int header_collected = https.headers();
-#ifdef DEBUG_WEATHER
+#if DEBUG_WEATHER
       Serial.println("Data unchanged. Nothing todo");
       Serial.print("Collected ");
       Serial.print(header_collected);
@@ -269,57 +252,75 @@ void WeatherRFP::update_data(void)
         this->last_modified = https.header("last-modified");
         String expires = https.header("expires");
         const char *expires_c = expires.c_str();
-        char *end = strptime(expires_c, "%a, %d %b %Y %H:%M:%S GMT",
-                             this->expired_time);
-#ifdef DEBUG_WEATHER
+        char *end = strptime(expires_c, "%a, %d %b %Y %H:%M:%S GMT", this->expired_time);
+#if DEBUG_WEATHER
         if ((end == NULL) || end != "\0")
         {
           Serial.print("Found remaining char: ");
           Serial.println(end);
         }
-#endif
-#ifdef DEBUG_WEATHER
-
         Serial.print("last-modified: ");
         Serial.println(this->last_modified);
-
         Serial.print("expires: ");
         Serial.println(expires);
 #endif
       }
-      return;
+      return true;
     }
   }
   else
   {
-#ifdef DEBUG_WEATHER
+#if DEBUG_WEATHER
     Serial.print("Error code: ");
     Serial.println(httpResponseCode);
 #endif
   }
 
+#if HAS_SPI_RAM_WEATHERRFP
+  SpiRamAllocator allocator;
+  JsonDocument doc(&allocator);
+#else
   JsonDocument doc;
-  DeserializationError error = deserializeJson(doc, https.getStream(), DeserializationOption::Filter(filter));
-
-#ifdef DEBUG_WEATHER
-  Serial.println("Starting deserialization");
 #endif
+  File file = fs.open(scratch_file, FILE_WRITE);
+  https.writeToStream(&file);
+  file.close();
+  file = fs.open(scratch_file);
+  if(!file || file.isDirectory()){
+#if DEBUG_WEATHER
+      Serial.println("- failed to open file for reading");
+#endif
+      return false;
+  }
+
+#if DEBUG_WEATHER
+  Serial.print("Deserializing weather data from file ...");
+#endif
+  DeserializationError error = deserializeJson(doc, file, DeserializationOption::Filter(filter));
+  // while(file.available()){
+  //     Serial.write(file.read());
+  // }
+  file.close();
+#if DEBUG_WEATHER
+  Serial.println("- done!");
+#endif
+  // ReadLoggingStream loggingStream(https.getStream(), Serial);
+  // DeserializationError error = deserializeJson(doc, loggingStream, DeserializationOption::Filter(filter));
+
   if (error)
   {
-
-#ifdef DEBUG_WEATHER
-    Serial.print("deserializeJson() failed: ");
+#if DEBUG_WEATHER
+    Serial.print("DeserializeJson() failed - error msg: ");
     Serial.println(error.c_str());
 #endif
-    return;
+    return false;
   }
-  if (!(doc.containsKey("properties")))
+  if (!(doc["properties"]["timeseries"].is<JsonArray>()))
   {
-    return;
-  }
-  if (!(doc["properties"].containsKey("timeseries")))
-  {
-    return;
+#if DEBUG_WEATHER
+    Serial.println("JsonArray properties.timeseries not found in JSON document");
+#endif
+    return false;
   }
   JsonArray timeseries = doc["properties"]["timeseries"];
   float *temps = new float[this->num_hours + 1];
@@ -333,55 +334,23 @@ void WeatherRFP::update_data(void)
   JsonObject current_timeseries_data;
   JsonObject current_timeseries_details;
   JsonObject current_timeseries_next_hour_details;
-  if (timeseries[0]["data"].containsKey("next_1_hours"))
-  {
-    if (timeseries[0]["data"]["next_1_hours"].containsKey("summary"))
-    {
-      if (timeseries[0]["data"]["next_1_hours"]["summary"].containsKey(
-              "symbol_code"))
-      {
-        this->symbol_code_next_1h =
-            String((const char *)timeseries[0]["data"]["next_1_hours"]
-                                           ["summary"]["symbol_code"]);
-      }
-    }
-  }
-  if (timeseries[0]["data"].containsKey("next_6_hours"))
-  {
-    if (timeseries[0]["data"]["next_6_hours"].containsKey("summary"))
-    {
-      if (timeseries[0]["data"]["next_6_hours"]["summary"].containsKey(
-              "symbol_code"))
-      {
-        this->symbol_code_next_6h =
-            String((const char *)timeseries[0]["data"]["next_6_hours"]
-                                           ["summary"]["symbol_code"]);
-      }
-    }
-  }
-  if (timeseries[0]["data"].containsKey("next_12_hours"))
-  {
-    if (timeseries[0]["data"]["next_12_hours"].containsKey("summary"))
-    {
-      if (timeseries[0]["data"]["next_12_hours"]["summary"].containsKey(
-              "symbol_code"))
-      {
-        this->symbol_code_next_12h =
-            String((const char *)timeseries[0]["data"]["next_12_hours"]
-                                           ["summary"]["symbol_code"]);
-      }
-    }
-  }
+
+  if (timeseries[0]["data"]["next_1_hours"]["summary"]["symbol_code"].is<String>())
+    this->symbol_code_next_1h = String((const char *)timeseries[0]["data"]["next_1_hours"]["summary"]["symbol_code"]);
+
+  if (timeseries[0]["data"]["next_6_hours"]["summary"]["symbol_code"].is<String>())
+    this->symbol_code_next_6h = String((const char *)timeseries[0]["data"]["next_6_hours"]["summary"]["symbol_code"]);
+
+  if (timeseries[0]["data"]["next_12_hours"]["summary"]["symbol_code"].is<String>())
+    this->symbol_code_next_12h = String((const char *)timeseries[0]["data"]["next_12_hours"]["summary"]["symbol_code"]);
+
   for (uint8_t i = 0; i < this->num_hours + 1; ++i)
   {
     current_timeseries_data = timeseries[i]["data"];
     current_timeseries_details = current_timeseries_data["instant"]["details"];
-    current_timeseries_next_hour_details =
-        current_timeseries_data["next_1_hours"]["details"];
-
+    current_timeseries_next_hour_details = current_timeseries_data["next_1_hours"]["details"];
     temps[i] = current_timeseries_details["air_temperature"];
-    precipitation[i] =
-        current_timeseries_next_hour_details["precipitation_amount"];
+    precipitation[i] = current_timeseries_next_hour_details["precipitation_amount"];
     wind_speeds[i] = current_timeseries_details["wind_speed"];
     wind_directions[i] = current_timeseries_details["wind_from_direction"];
     air_pressure[i] = current_timeseries_details["air_pressure_at_sea_level"];
@@ -389,7 +358,6 @@ void WeatherRFP::update_data(void)
     relative_humidity[i] = current_timeseries_details["relative_humidity"];
     dew_point[i] = current_timeseries_details["dew_point_temperature"];
   }
-  // Free resources
   this->temperature->update_vals(temps);
   this->precipitation->update_vals(precipitation);
   this->wind_speeds->update_vals(wind_speeds);
@@ -399,7 +367,7 @@ void WeatherRFP::update_data(void)
   this->relative_humidity->update_vals(relative_humidity);
   this->dew_point->update_vals(dew_point);
   int header_collected = https.headers();
-#ifdef DEBUG_WEATHER
+#if DEBUG_WEATHER
   Serial.print("Collected ");
   Serial.print(header_collected);
   Serial.println(" headers:");
@@ -411,25 +379,20 @@ void WeatherRFP::update_data(void)
     const char *expires_c = expires.c_str();
     char *end =
         strptime(expires_c, "%a, %d %b %Y %H:%M:%S GMT", this->expired_time);
-#ifdef DEBUG_WEATHER
+#if DEBUG_WEATHER
     if ((end == NULL) || end != "\0")
     {
       Serial.print("Found remaining char: ");
       Serial.println(end);
     }
-#endif
-
-#ifdef DEBUG_WEATHER
     Serial.print("last-modified: ");
     Serial.println(this->last_modified);
-
     Serial.print("expires: ");
     Serial.println(expires);
-    Serial.println(this->expired_time->tm_hour);
-    Serial.println(this->expired_time->tm_min);
 #endif
   }
   https.end();
+  // Free resources
   delete[] temps;
   delete[] precipitation;
   delete[] wind_speeds;
@@ -438,6 +401,8 @@ void WeatherRFP::update_data(void)
   delete[] cloudiness;
   delete[] relative_humidity;
   delete[] dew_point;
+  fs.remove(scratch_file);
+  return true;
 }
 
 bool is_leap_year(int year)

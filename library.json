@@ -19,7 +19,7 @@
   "license": "GPL-3.0-only",
   "homepage": "https://github.com/sebastian-xyz/ESPWeather",
   "dependencies": {
-    "bblanchon/ArduinoJson": "^7.4.2"
+    "bblanchon/ArduinoJson": "^7.4.2",
     "bblanchon/StreamUtils": "^1.9.0"
   },
   "frameworks": "*",

@@ -1,5 +1,7 @@
 #include "math.h"
 #include <ArduinoJson.h>
+#include <StreamUtils.h>
+#include <FS.h>
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <memory>
@@ -200,7 +202,7 @@ void Weather::update_location(float latitude, float longitude,
   this->altitude = altitude;
 }
 
-void Weather::update_data(void)
+bool Weather::update_data(fs::FS &fs)
 {
   std::unique_ptr<WiFiClientSecure> client(new WiFiClientSecure);
   std::unique_ptr<char[]> buffer(new char[512]);
@@ -248,7 +250,6 @@ void Weather::update_data(void)
   }
 
   int httpResponseCode = https.GET();
-  String payload = "{}";
   if (httpResponseCode > 0)
   {
 #ifdef DEBUG_WEATHER
@@ -277,17 +278,13 @@ void Weather::update_data(void)
           Serial.print("Found remaining char: ");
           Serial.println(end);
         }
-#endif
-#ifdef DEBUG_WEATHER
-
         Serial.print("last-modified: ");
         Serial.println(this->last_modified);
-
         Serial.print("expires: ");
         Serial.println(expires);
 #endif
       }
-      return;
+      return true;
     }
   }
   else
@@ -298,28 +295,47 @@ void Weather::update_data(void)
 #endif
   }
 
+#if HAS_SPI_RAM_WEATHER
+  SpiRamAllocator allocator;
+  JsonDocument doc(&allocator);
+#else
   JsonDocument doc;
-  DeserializationError error = deserializeJson(doc, https.getStream(), DeserializationOption::Filter(filter));
-
-#ifdef DEBUG_WEATHER
-  Serial.println("Starting deserialization");
 #endif
+  File file = fs.open(scratch_file, FILE_WRITE);
+  https.writeToStream(&file);
+  file.close();
+  file = fs.open(scratch_file);
+  if (!file || file.isDirectory())
+  {
+#if DEBUG_WEATHER
+    Serial.println("- failed to open file for reading");
+#endif
+    return false;
+  }
+
+#if DEBUG_WEATHER
+  Serial.print("Deserializing weather data from file ...");
+#endif
+  DeserializationError error = deserializeJson(doc, file, DeserializationOption::Filter(filter));
+  file.close();
+#if DEBUG_WEATHER
+  Serial.println("- done!");
+#endif
+
   if (error)
   {
-
 #ifdef DEBUG_WEATHER
-    Serial.print("deserializeJson() failed: ");
+    Serial.print("DeserializeJson() failed - error msg: ");
     Serial.println(error.c_str());
 #endif
-    return;
+    return false;
   }
-  if (!(doc.containsKey("properties")))
+  if (!(doc["properties"]["timeseries"].is<JsonArray>()))
   {
-    return;
-  }
-  if (!(doc["properties"].containsKey("timeseries")))
-  {
-    return;
+#if DEBUG_WEATHER
+    Serial.println("JsonArray properties.timeseries not found in JSON document");
+#endif
+    return false;
   }
   JsonArray timeseries = doc["properties"]["timeseries"];
   float *temps = new float[this->num_hours + 1];
@@ -333,12 +349,11 @@ void Weather::update_data(void)
   JsonObject current_timeseries_data;
   JsonObject current_timeseries_details;
   JsonObject current_timeseries_next_hour_details;
-  if (timeseries[0]["data"].containsKey("next_1_hours"))
+  if (timeseries[0]["data"]["next_1_hours"].is<String>())
   {
-    if (timeseries[0]["data"]["next_1_hours"].containsKey("summary"))
+    if (timeseries[0]["data"]["next_1_hours"]["summary"].is<String>())
     {
-      if (timeseries[0]["data"]["next_1_hours"]["summary"].containsKey(
-              "symbol_code"))
+      if (timeseries[0]["data"]["next_1_hours"]["summary"]["symbol_code"].is<String>())
       {
         this->symbol_code_next_1h =
             String((const char *)timeseries[0]["data"]["next_1_hours"]
@@ -346,12 +361,11 @@ void Weather::update_data(void)
       }
     }
   }
-  if (timeseries[0]["data"].containsKey("next_6_hours"))
+  if (timeseries[0]["data"]["next_6_hours"].is<String>())
   {
-    if (timeseries[0]["data"]["next_6_hours"].containsKey("summary"))
+    if (timeseries[0]["data"]["next_6_hours"]["summary"].is<String>())
     {
-      if (timeseries[0]["data"]["next_6_hours"]["summary"].containsKey(
-              "symbol_code"))
+      if (timeseries[0]["data"]["next_6_hours"]["summary"]["symbol_code"].is<String>())
       {
         this->symbol_code_next_6h =
             String((const char *)timeseries[0]["data"]["next_6_hours"]
@@ -359,12 +373,11 @@ void Weather::update_data(void)
       }
     }
   }
-  if (timeseries[0]["data"].containsKey("next_12_hours"))
+  if (timeseries[0]["data"]["next_12_hours"].is<String>())
   {
-    if (timeseries[0]["data"]["next_12_hours"].containsKey("summary"))
+    if (timeseries[0]["data"]["next_12_hours"]["summary"].is<String>())
     {
-      if (timeseries[0]["data"]["next_12_hours"]["summary"].containsKey(
-              "symbol_code"))
+      if (timeseries[0]["data"]["next_12_hours"]["summary"]["symbol_code"].is<String>())
       {
         this->symbol_code_next_12h =
             String((const char *)timeseries[0]["data"]["next_12_hours"]
@@ -417,12 +430,8 @@ void Weather::update_data(void)
       Serial.print("Found remaining char: ");
       Serial.println(end);
     }
-#endif
-
-#ifdef DEBUG_WEATHER
     Serial.print("last-modified: ");
     Serial.println(this->last_modified);
-
     Serial.print("expires: ");
     Serial.println(expires);
     Serial.println(this->expired_time->tm_hour);
@@ -430,6 +439,7 @@ void Weather::update_data(void)
 #endif
   }
   https.end();
+  // Free resources
   delete[] temps;
   delete[] precipitation;
   delete[] wind_speeds;
@@ -438,6 +448,8 @@ void Weather::update_data(void)
   delete[] cloudiness;
   delete[] relative_humidity;
   delete[] dew_point;
+  fs.remove(scratch_file);
+  return true;
 }
 
 bool is_leap_year(int year)
@@ -523,6 +535,10 @@ WeatherData *Weather::get_cloudiness() { return this->cloudiness; }
 WeatherData *Weather::get_dew_point() { return this->dew_point; }
 
 tm *Weather::getExpiredTime() { return this->expired_time; }
+void Weather::setExpiredTime(tm *time) { this->expired_time = time; }
+void Weather::set_symbol_code_next_1h(String symbol) { this->symbol_code_next_1h = symbol; }
+void Weather::set_symbol_code_next_6h(String symbol) { this->symbol_code_next_6h = symbol; }
+void Weather::set_symbol_code_next_12h(String symbol) { this->symbol_code_next_12h = symbol; }
 String Weather::get_symbol_code_next_1h() { return this->symbol_code_next_1h; }
 String Weather::get_symbol_code_next_12h()
 {

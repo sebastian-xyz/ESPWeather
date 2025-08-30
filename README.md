@@ -14,6 +14,10 @@ lib_deps =
     https://github.com/sebastian-xyz/ESPWeather.git
 ```
 
+### Important Requirements
+
+**Filesystem Support**: The library requires a filesystem (such as LittleFS, SPIFFS, or SD card) to store temporary weather data. LittleFS is recommended for ESP32 projects. Make sure to initialize your chosen filesystem before calling `update_data()`.
+
 ---
 
 ## About the Reduced FootPrint (RFP) Classes
@@ -59,6 +63,8 @@ Example sketch:
 #include <Arduino.h>
 #include <weather.hpp>
 #include <WiFi.h>
+#include <FS.h>
+#include <LittleFS.h>
 
 Weather *weather_status;
 
@@ -69,6 +75,12 @@ void setup() {
   // get connected
   ...
 
+  // Initialize LittleFS
+  if (!LittleFS.begin()) {
+    Serial.println("An error occurred while mounting LittleFS");
+    return;
+  }
+
   // get local time set
   struct tm local;
   configTzTime(TIMEZONE, "pool.ntp.org");
@@ -78,7 +90,7 @@ void setup() {
   weather_status->set_utc_offset(1);
 
   if (WiFi.isConnected()) {
-    weather_status->update_data();
+    weather_status->update_data(LittleFS);
   }
 
 }
@@ -86,23 +98,23 @@ void setup() {
 void loop() {
 
   if (weather_status->is_expired()) {
-    weather_status->update_data();
+    weather_status->update_data(LittleFS);
   }
   Serial.print("Current temperature: ");
   Serial.print(weather_status->get_temperature()->get_current());
-  Serial.println("°C);
+  Serial.println("°C");
 
   Serial.print("Maximum temperature next 24 hours: ");
   Serial.print(weather_status->get_temperature()->get_maximum());
-  Serial.println("°C);
+  Serial.println("°C");
 
-  Serial.print("Maximum temperature next 24 hours: ");
+  Serial.print("Minimum temperature next 24 hours: ");
   Serial.print(weather_status->get_temperature()->get_minimum());
-  Serial.println("°C);
+  Serial.println("°C");
 
   Serial.print("Mean temperature next 24 hours: ");
   Serial.print(weather_status->get_temperature()->get_mean());
-  Serial.println("°C);
+  Serial.println("°C");
 
 }
 ```
@@ -136,7 +148,7 @@ The `Weather` class provides an interface to retrieve and manage weather data fr
 |                         | _Weather(uint8_t num_hours, float latitude, float longitude, uint16_t altitude)_ | Constructor with hours, latitude, longitude, altitude. |
 |                         | _~Weather()_                                | Destructor.                                                        |
 | **bool**                | _is_expired(void)_                          | Checks if the weather data is expired.                             |
-| **void**                | _update_data(void)_                         | Updates the weather data from the API.                             |
+| **bool**                | _update_data(fs::FS &fs)_                   | Updates the weather data from the API using the provided filesystem. |
 | **void**                | _update_location(float latitude, float longitude)_ | Updates the location (latitude and longitude).              |
 | **void**                | _update_location(float latitude, float longitude, uint16_t altitude)_ | Updates the location with latitude, longitude, and altitude. |
 | **void**                | _set_utc_offset(int8_t utf_offset)_         | Sets the UTC offset for the location.                              |
@@ -149,10 +161,10 @@ The `Weather` class provides an interface to retrieve and manage weather data fr
 | **WeatherData\***       | _get_cloudiness()_                          | Returns a pointer to cloudiness data.                              |
 | **WeatherData\***       | _get_relative_humidity()_                   | Returns a pointer to relative humidity data.                       |
 | **WeatherData\***       | _get_dew_point()_                           | Returns a pointer to dew point data.                               |
-| **void**                | _setExpiredTime(tm *time)_                  | Sets a pointer to the expiration time structure.                   |
 | **tm\***                | _getExpiredTime()_                          | Returns a pointer to the expiration time structure.                |
+| **void**                | _setExpiredTime(tm *time)_                  | Sets a pointer to the expiration time structure.                   |
 | **void**                | _set_symbol_code_next_1h(String symbol)_    | Sets a stored symbol code for the next 1 hour.                     |
-| **void**                | _set_symbol_code_next_6h(String symbol)_    | Sets a stored symbol code for the next 6 hour.                     |
+| **void**                | _set_symbol_code_next_6h(String symbol)_    | Sets a stored symbol code for the next 6 hours.                    |
 | **void**                | _set_symbol_code_next_12h(String symbol)_   | Sets a stored symbol code for the next 12 hours.                   |
 | **String**              | _get_symbol_code_next_1h()_                 | Returns the symbol code for the next 1 hour.                       |
 | **String**              | _get_symbol_code_next_6h()_                 | Returns the symbol code for the next 6 hours.                      |

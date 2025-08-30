@@ -1,6 +1,7 @@
 #include "math.h"
 #include <ArduinoJson.h>
 #include <StreamUtils.h>
+#include <FS.h>
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <memory>
@@ -234,14 +235,14 @@ bool WeatherRFP::update_data(fs::FS &fs)
   int httpResponseCode = https.GET();
   if (httpResponseCode > 0)
   {
-#if DEBUG_WEATHER
+#ifdef DEBUG_WEATHER
     Serial.print("HTTP Response code: ");
     Serial.println(httpResponseCode);
 #endif
     if ((!this->last_modified.isEmpty()) && httpResponseCode == 304)
     {
       int header_collected = https.headers();
-#if DEBUG_WEATHER
+#ifdef DEBUG_WEATHER
       Serial.println("Data unchanged. Nothing todo");
       Serial.print("Collected ");
       Serial.print(header_collected);
@@ -253,7 +254,7 @@ bool WeatherRFP::update_data(fs::FS &fs)
         String expires = https.header("expires");
         const char *expires_c = expires.c_str();
         char *end = strptime(expires_c, "%a, %d %b %Y %H:%M:%S GMT", this->expired_time);
-#if DEBUG_WEATHER
+#ifdef DEBUG_WEATHER
         if ((end == NULL) || end != "\0")
         {
           Serial.print("Found remaining char: ");
@@ -270,7 +271,7 @@ bool WeatherRFP::update_data(fs::FS &fs)
   }
   else
   {
-#if DEBUG_WEATHER
+#ifdef DEBUG_WEATHER
     Serial.print("Error code: ");
     Serial.println(httpResponseCode);
 #endif
@@ -286,30 +287,26 @@ bool WeatherRFP::update_data(fs::FS &fs)
   https.writeToStream(&file);
   file.close();
   file = fs.open(scratch_file);
-  if(!file || file.isDirectory()){
+  if (!file || file.isDirectory())
+  {
 #if DEBUG_WEATHER
-      Serial.println("- failed to open file for reading");
+    Serial.println("- failed to open file for reading");
 #endif
-      return false;
+    return false;
   }
 
 #if DEBUG_WEATHER
   Serial.print("Deserializing weather data from file ...");
 #endif
   DeserializationError error = deserializeJson(doc, file, DeserializationOption::Filter(filter));
-  // while(file.available()){
-  //     Serial.write(file.read());
-  // }
   file.close();
 #if DEBUG_WEATHER
   Serial.println("- done!");
 #endif
-  // ReadLoggingStream loggingStream(https.getStream(), Serial);
-  // DeserializationError error = deserializeJson(doc, loggingStream, DeserializationOption::Filter(filter));
 
   if (error)
   {
-#if DEBUG_WEATHER
+#ifdef DEBUG_WEATHER
     Serial.print("DeserializeJson() failed - error msg: ");
     Serial.println(error.c_str());
 #endif
@@ -367,7 +364,7 @@ bool WeatherRFP::update_data(fs::FS &fs)
   this->relative_humidity->update_vals(relative_humidity);
   this->dew_point->update_vals(dew_point);
   int header_collected = https.headers();
-#if DEBUG_WEATHER
+#ifdef DEBUG_WEATHER
   Serial.print("Collected ");
   Serial.print(header_collected);
   Serial.println(" headers:");
@@ -379,7 +376,7 @@ bool WeatherRFP::update_data(fs::FS &fs)
     const char *expires_c = expires.c_str();
     char *end =
         strptime(expires_c, "%a, %d %b %Y %H:%M:%S GMT", this->expired_time);
-#if DEBUG_WEATHER
+#ifdef DEBUG_WEATHER
     if ((end == NULL) || end != "\0")
     {
       Serial.print("Found remaining char: ");

@@ -2,9 +2,7 @@
 #define WEATHER_RFP_HPP
 
 #include <Arduino.h>
-#include <ArduinoJson.h>
 #include <FS.h>
-
 #include "weather_data_rfp.hpp"
 #include "weather_defines.hpp"
 
@@ -33,9 +31,6 @@
 #define ESPWeatherRFPFactorDewPoint 500.0f
 #endif
 
-#ifndef DEBUG_WEATHER
-#define DEBUG_WEATHER 1
-#endif
 #ifndef HAS_SPI_RAM_WEATHERRFP
 #define HAS_SPI_RAM_WEATHERRFP 1
 #endif
@@ -101,16 +96,21 @@ public:
 };
 
 #if HAS_SPI_RAM_WEATHERRFP
-struct SpiRamAllocator : ArduinoJson::Allocator {
-  void* allocate(size_t size) override {
+#include <ArduinoJson.h>
+struct SpiRamAllocator : ArduinoJson::Allocator
+{
+  void *allocate(size_t size) override
+  {
     return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
   }
 
-  void deallocate(void* pointer) override {
+  void deallocate(void *pointer) override
+  {
     heap_caps_free(pointer);
   }
 
-  void* reallocate(void* ptr, size_t new_size) override {
+  void *reallocate(void *ptr, size_t new_size) override
+  {
     return heap_caps_realloc(ptr, new_size, MALLOC_CAP_SPIRAM);
   }
 };
